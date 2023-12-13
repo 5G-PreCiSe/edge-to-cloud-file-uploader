@@ -9,6 +9,7 @@ if __name__ == "__main__":
         for item in psutil.disk_partitions():
             if item.device == device:
                 found = True
+            print(item)
         if found:
             print("Device ",device," is present")
         else:
