@@ -5,14 +5,15 @@ from filesystem import FileSystem
 import json
 from led import Led
 
+from services.configuration_service import ConfigurationService
+from mqtt import Mqtt
+
 from gpiozero import Button
 import time
 
 import threading
 import logging
 
-access_key = ""
-secret_key = ""
 path = "/media/user/images/last/"
 bucket = "test"
 device = "/dev/sdb1"
@@ -67,23 +68,45 @@ def status_callback(state):
         oled.draw("Unknown","Mounted","5G")
         led.set_color(255,0,0)
     oled.update()
+    
+def publish_status(mqtt):
+    while True:
+        mqtt.publish_async("test","Hello World!")
+        time.sleep(2)
 
 if __name__ == "__main__":
     
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO,datefmt="%H:%M:%S")
     
-    s3 = S3Uploader(access_key,secret_key)
+    configuration_service = ConfigurationService()
+    configuration_service.load_persistent_config("config.ini")
+    
+    cancel_event = threading.Event()
+    
+    mqtt = Mqtt()
+    mqtt.connect(configuration_service.get("broker","Address"),configuration_service.get("broker","Port",type="int"),configuration_service.get("device","DeviceId"),configuration_service.get("broker","Username"),configuration_service.get("broker","Password"))
+    mqtt_publisher_thread = threading.Thread(target=mqtt.publishing_worker,args=(cancel_event,),daemon=False)
+    mqtt_publisher_thread.start()
+    mqtt_publisher_info_thread = threading.Thread(target=publish_status,args=(mqtt,),daemon=False)
+    mqtt_publisher_info_thread.start()
+    mqtt.start() # This call blocks the execution
+    
+    
+    s3 = S3Uploader(configuration_service.get("s3","AccessKey"),configuration_service.get("s3","SecretKey"))
     s3.set_update_callback(update_callback)
     s3.set_status_callback(status_callback)
+    
+    #fs = FileSystem()
+    #print(json.dumps(fs.scan_drive("/media/user/")))
 
-    cancel_event = threading.Event()
+    
     upload_worker_thread = threading.Thread(target=s3.upload_worker,args=(cancel_event,),daemon=False)
     upload_worker_thread.start()
     
     job = {
         "jobId":"123",
-        "bucket":"2023-12-13",
+        "bucket":"2024-01-08",
         "path": "/media/user/BAE4-A49C/images/last/"
     }
     

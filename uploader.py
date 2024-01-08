@@ -76,7 +76,8 @@ class S3Uploader:
                 if self.status_callback: 
                     self.status_callback(self.JOB_COMPLETED)
         except Exception as exc:
-            logging.info("Job '"+str(jobId)+"' ended with exception '"+str(type(exc))+"'") 
+            logging.error("Job '"+str(jobId)+"' ended with exception '"+str(type(exc))+"'") 
+            logging.exception(exc)
             self.status_callback(self.JOB_EXCEPTION_CANCELED)
             
     def upload_worker(self, cancel_event):
