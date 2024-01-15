@@ -5,8 +5,10 @@ from filesystem import FileSystem
 import json
 from led import Led
 
-from services.configuration_service import ConfigurationService
+#from services.configuration_service import ConfigurationService
+from configuration_handler import ConfigurationHandler
 from mqtt import Mqtt
+from api import Api
 
 from gpiozero import Button
 import time
@@ -69,40 +71,43 @@ def status_callback(state):
         led.set_color(255,0,0)
     oled.update()
     
-def publish_status(mqtt):
-    while True:
-        mqtt.publish_async("test","Hello World!")
-        time.sleep(2)
 
 if __name__ == "__main__":
     
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO,datefmt="%H:%M:%S")
     
-    configuration_service = ConfigurationService()
-    configuration_service.load_persistent_config("config.ini")
+    configuration = ConfigurationHandler()
+    configuration.load_persistent_config("config.ini")
     
     cancel_event = threading.Event()
     
     mqtt = Mqtt()
-    mqtt.connect(configuration_service.get("broker","Address"),configuration_service.get("broker","Port",type="int"),configuration_service.get("device","DeviceId"),configuration_service.get("broker","Username"),configuration_service.get("broker","Password"))
-    mqtt_publisher_thread = threading.Thread(target=mqtt.publishing_worker,args=(cancel_event,),daemon=False)
-    mqtt_publisher_thread.start()
-    mqtt_publisher_info_thread = threading.Thread(target=publish_status,args=(mqtt,),daemon=False)
-    mqtt_publisher_info_thread.start()
-    mqtt.start() # This call blocks the execution
+    mqtt.connect(configuration.get("broker","Address"),configuration.get("broker","Port",type="int"),configuration.get("device","DeviceId"),configuration.get("broker","Username"),configuration.get("broker","Password"))
+    
+    api = Api(configuration,mqtt)
+    
+    fs = FileSystem(configuration)
+    api.set_filesystem(fs)
+    
+    s3 = S3Uploader()
+    api.set_uploader(s3)
+    
+    api.start(cancel_event)
+    
+    mqtt.start(cancel_event) # This call blocks the execution
     
     
-    s3 = S3Uploader(configuration_service.get("s3","AccessKey"),configuration_service.get("s3","SecretKey"))
+    s3 = S3Uploader(configuration.get("s3","AccessKey"),configuration.get("s3","SecretKey"))
     s3.set_update_callback(update_callback)
     s3.set_status_callback(status_callback)
     
-    #fs = FileSystem()
+    #
     #print(json.dumps(fs.scan_drive("/media/user/")))
 
     
-    upload_worker_thread = threading.Thread(target=s3.upload_worker,args=(cancel_event,),daemon=False)
-    upload_worker_thread.start()
+    #upload_worker_thread = threading.Thread(target=s3.upload_worker,args=(cancel_event,),daemon=False)
+    #upload_worker_thread.start()
     
     job = {
         "jobId":"123",

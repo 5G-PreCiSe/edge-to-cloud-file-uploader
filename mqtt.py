@@ -2,6 +2,7 @@ from paho.mqtt import client as mqtt_client
 import logging
 import queue
 import time
+import threading
 
 class Mqtt:
     
@@ -40,8 +41,10 @@ class Mqtt:
         self.on_disconnect = on_disconnect
     
     def subscribe(self, topic):
-        self.subscribe(topic)
+        self.client.subscribe(topic)
     
+    def unsubscribe(self, topic):
+        self.client.unsubscribe(topic)
     
     def set_on_message(self, fct):
         self.client.on_message = fct
@@ -59,11 +62,14 @@ class Mqtt:
         logging.info("Schedule message for publishing to topic "+topic)
         self.queue.put((topic,payload))
     
-    def start(self):
+    def start(self,cancel_event):
+        self.publisher_thread = threading.Thread(target=self.publishing_worker, args=(cancel_event,),daemon=False)
+        self.publisher_thread.start()
         self.client.loop_forever()
         
     def stop(self):
         self.client.loop_stop()
+        self.publisher_thread.stop()
     
     def publishing_worker(self,cancel_event):
         while not cancel_event.is_set():
