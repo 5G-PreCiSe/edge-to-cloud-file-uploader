@@ -28,7 +28,7 @@ class FileSystem:
     def scan_drive(self, mount_path):
         return self.browse_dir(mount_path,"root","dir",0,0,0)
     
-    def browse_dir(self, path, name, ttype, size, created, modified):
+    def browse_dir(self, path, name, ttype, size, created, modified, max_depth = -1):
         entry_obj = {
             "path": path,
             "name": name,
@@ -40,25 +40,26 @@ class FileSystem:
         if ttype == "dir":
             entry_obj["entries"] = []
             
-            with os.scandir(path) as it:
-                for entry in it:
-                    t = None
-                    if entry.is_dir():
-                        t = "dir"
-                    elif entry.is_file():
-                        t = "file"
-                    elif entry.is_junction():
-                        t = "junction"
-                    elif entry.is_symlink():
-                        t = "symlink"
-                    else:
-                        t = "deleted"
-                    stats = os.stat(entry.path)
+            if max_depth != 0:
+                with os.scandir(path) as it:
+                    for entry in it:
+                        t = None
+                        if entry.is_dir():
+                            t = "dir"
+                        elif entry.is_file():
+                            t = "file"
+                        elif entry.is_junction():
+                            t = "junction"
+                        elif entry.is_symlink():
+                            t = "symlink"
+                        else:
+                            t = "deleted"
+                        stats = os.stat(entry.path)
 
-                    creation_time_s = str(datetime.datetime.fromtimestamp(stats.st_ctime).isoformat())
-                    modification_time_s = str(datetime.datetime.fromtimestamp(stats.st_mtime).isoformat())
-                    
-                    entry_obj["entries"].append(self.browse_dir(entry.path,entry.name,t,stats.st_size,creation_time_s,modification_time_s))
+                        creation_time_s = str(datetime.datetime.fromtimestamp(stats.st_ctime).isoformat())
+                        modification_time_s = str(datetime.datetime.fromtimestamp(stats.st_mtime).isoformat())
+                        
+                        entry_obj["entries"].append(self.browse_dir(entry.path,entry.name,t,stats.st_size,creation_time_s,modification_time_s,max_depth-1))
         return entry_obj
     
     def request(self, req_payload):
@@ -136,7 +137,7 @@ class FileSystem:
         else:
             raise MissingArgumentException("path")
         
-        entries = self.browse_dir(path,"","dir",0,0,0)["entries"]
+        entries = self.browse_dir(path,"","dir",0,0,0,max_depth=1)["entries"]
         response = {
             "content": entries
         }

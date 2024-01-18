@@ -16,13 +16,14 @@ import time
 import threading
 import logging
 
-path = "/media/user/images/last/"
-bucket = "test"
-device = "/dev/sdb1"
-mnt_state = False
-
 led = Led()
 oled = OLED()
+
+mqtt_connected = False
+mounted = False
+s3_state = ""
+registered = False
+led_color = ()
 
 def pressed():
     print("Pressed")
@@ -31,94 +32,141 @@ def released():
     print("released")
 
 
-def mount_observer(name):
-    global mnt_state
-    while True:
+def mount_observer(cancel_event, configuration):
+    global mounted
+    while not cancel_event.is_set():
         found = False
+        device = configuration.get("fs","Device")
         for item in psutil.disk_partitions():
             if item.device == device:
                 found = True
         if found:
-            print("Device ",device," is present")
-            led.set_color(0,255,0)
-            mnt_state = True
+            #print("Device ",device," is present")
+            mounted = True
         else:
-            print("Device is not present")
-            led.set_color(255,0,0)
-            mnt_state = False
+            mounted = False
         time.sleep(1)
 
-def update_callback(total,completed):
-    oled.draw(str(completed)+" of "+str(total),"Mounted","5G")
-    led.set_color(128,128,0)
-    oled.update()
+def s3_update_callback(total,completed):
+    global s3_state
+    s3_state = str(completed)+" of "+str(total)
     
-def status_callback(state):
-    if state == S3Uploader.JOB_COMPLETED:
-        oled.draw("Completed","Mounted","5G")
+    #led.set_color(128,128,0)
+    #oled.update()
+    
+def registered_callback():
+    global registered
+    registered = True
+    
+    global s3_state
+    if mqtt_connected and mounted:
+        s3_state = "Ready"
+        led.set_color(0,255,0)
+    elif not mounted:
+        s3_state = "Card unmounted"
+    elif not mqtt_connected:
+        s3_state = "No connection"
+
+def s3_status_callback(state):
+    global s3_state
+    if state == S3Uploader.JOB_SCHEDULED:
+        pass
+    if state == S3Uploader.JOB_IN_PROGRESS:
+        pass
+    elif state == S3Uploader.JOB_COMPLETED:
+        #s3_state = "Completed"
+        registered_callback()
+        #oled.draw("Completed","Mounted","5G")
         led.set_color(0,255,0)
     elif state == S3Uploader.JOB_MANUALLY_CANCELED:
-        oled.draw("Canceled","Mounted","5G")
+        s3_state = "Canceled"
+        #oled.draw("Canceled","Mounted","5G")
         led.set_color(255,0,0)
     elif state == S3Uploader.JOB_SHUTDOWN_CANCELED:
-        oled.draw("Shutting down","Mounted","5G")
+        s3_state = "Shutting down"
+        #oled.draw("Shutting down","Mounted","5G")
         led.set_color(255,0,0)
-    elif state == S3Uploader.JOB_EXCEPTION_CANCELED:
-        oled.draw("Error","Mounted","5G")
+    elif state == S3Uploader.JOB_ERROR:
+        s3_state = "Error"
+        #oled.draw("Error","Mounted","5G")
         led.set_color(255,0,0)
     else:
-        oled.draw("Unknown","Mounted","5G")
-        led.set_color(255,0,0)
-    oled.update()
+        s3_state = "Unknown"
+        #oled.draw("Unknown","Mounted","5G")
+    #oled.update()
+
+def mqtt_connection_callback(connected):
+    global mqtt_connected
+    mqtt_connected = connected
+
     
+def hid_worker(cancel_event):
+    while not cancel_event.is_set():    
+        if mounted:
+            mnt_state = "Mounted"
+        else:
+            mnt_state = "Unmounted"
+            led.set_color(255,0,0)
+            
+        if mqtt_connected:
+            mqtt_state = "MQTT"
+        else:
+            mqtt_state = "X"
+            led.set_color(255,0,0)
+    
+        if registered:
+            oled.draw(s3_state,mnt_state,mqtt_state)
+        else:
+            oled.draw("Reg. pending", mnt_state,mqtt_state)
+            
+        
+        oled.update()
+        led.update()
+        time.sleep(0.1)
+    oled.draw("Shutting down ...", "","")
+    oled.update()         
 
 if __name__ == "__main__":
     
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO,datefmt="%H:%M:%S")
     
+    oled.draw("Initializing","","")
+    oled.update()
+    led.set_color(255,192,0)
+    led.update()
+    
     configuration = ConfigurationHandler()
     configuration.load_persistent_config("config.ini")
     
     cancel_event = threading.Event()
     
+    mount_observer_thread = threading.Thread(target=mount_observer, args=(cancel_event,configuration), daemon=False)
+    mount_observer_thread.start()
+    
+    hid_thread = threading.Thread(target=hid_worker, args=(cancel_event,), daemon=False)
+    hid_thread.start()
+    
     mqtt = Mqtt()
+    mqtt.set_status_callback(mqtt_connection_callback)
     mqtt.connect(configuration.get("broker","Address"),configuration.get("broker","Port",type="int"),configuration.get("device","DeviceId"),configuration.get("broker","Username"),configuration.get("broker","Password"))
     
     api = Api(configuration,mqtt)
+    api.set_registered_callback(registered_callback)
     
     fs = FileSystem(configuration)
     api.set_filesystem(fs)
     
-    s3 = S3Uploader()
+    s3 = S3Uploader(configuration)
+    s3.set_update_callback(s3_update_callback)
+    s3.set_status_callback(s3_status_callback)
     api.set_uploader(s3)
     
     api.start(cancel_event)
     
     mqtt.start(cancel_event) # This call blocks the execution
     
-    
-    s3 = S3Uploader(configuration.get("s3","AccessKey"),configuration.get("s3","SecretKey"))
-    s3.set_update_callback(update_callback)
-    s3.set_status_callback(status_callback)
-    
-    #
-    #print(json.dumps(fs.scan_drive("/media/user/")))
 
-    
-    #upload_worker_thread = threading.Thread(target=s3.upload_worker,args=(cancel_event,),daemon=False)
-    #upload_worker_thread.start()
-    
-    job = {
-        "jobId":"123",
-        "bucket":"2024-01-08",
-        "path": "/media/user/BAE4-A49C/images/last/"
-    }
-    
-    s3.add_job(job)
-    time.sleep(10)
-    cancel_event.set()
-    time.sleep(10)
     
     '''
     led.set_color(255,0,0)

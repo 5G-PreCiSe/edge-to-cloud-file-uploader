@@ -1,6 +1,9 @@
 import json
 import threading
 import time
+import logging
+import sh
+
 
 class Api:
     
@@ -10,6 +13,8 @@ class Api:
         self.configuration = configuration_handler
         self.mqtt = mqtt_client
         self.registered = False
+        
+        self.registered_callback = None
         
     def set_filesystem(self, fs):
         self.file_system = fs
@@ -22,6 +27,8 @@ class Api:
         self.mqtt.set_on_message(self.on_receive)
         self.mqtt.subscribe(self.configuration.get("api","RequestTopicsTopic"))
         self.mqtt.subscribe(self.configuration.get("api","RequestRegisterTopic"))
+        self.mqtt.subscribe(self.configuration.get("api","RequestSystemTopic"))
+        self.mqtt.subscribe(self.configuration.get("api","ResponseSystemTopic"))
         
         self.publisher_state_thread = threading.Thread(target=self.publish_state, args=(cancel_event,),daemon=False)
         self.publisher_state_thread.start()
@@ -33,6 +40,9 @@ class Api:
             }
             self.mqtt.publish_async(self.configuration.get("api","ResponseStateTopic"),json.dumps(res_payload))
             time.sleep(self.STAT_INTERVALL)
+            
+    def set_registered_callback(self, fct):
+        self.registered_callback = fct
 
         
     def is_registered(self):
@@ -45,10 +55,11 @@ class Api:
         self.uploader.start(self.cancel_event)
         
         self.mqtt.subscribe(self.configuration.get("api","RequestJobsTopic"))
-        self.mqtt.subscribe(self.configuration.get("api","RequestJobsTopic")+"/#")
-        
         
         self.registered = True
+        if self.registered_callback:
+            self.registered_callback()
+            
         return {
             "isRegistered": self.is_registered()
         }
@@ -62,12 +73,20 @@ class Api:
             "relation": "responseStateTopic"
         })
         response["topics"].append({
-            "topic": self.configuration.get("api","RequestTopicsTopic"),
-            "relation": "requestTopicsTopic"
+            "topic": self.configuration.get("api","ResponseTopicsTopic"),
+            "relation": "responseTopicsTopic"
         })
         response["topics"].append({
             "topic": self.configuration.get("api","RequestTopicsTopic"),
             "relation": "requestTopicsTopic"
+        })
+        response["topics"].append({
+            "topic": self.configuration.get("api","RequestSystemTopic"),
+            "relation": "requestSystemTopic"
+        })
+        response["topics"].append({
+            "topic": self.configuration.get("api","ResponseSystemTopic"),
+            "relation": "responseSystemTopic"
         })
         
         if self.is_registered():
@@ -97,6 +116,23 @@ class Api:
                 "relation": "requestRegisterTopic"
             })
         return response
+    
+    def serve_system_request(self, req_payload):
+        if "command" in req_payload:
+            if req_payload["command"] == "shutdown":
+                self.cancel_event.set()
+                time.sleep(3)
+                sh.sudo.shutdown()
+            elif req_payload["command"] == "reboot":
+                self.cancel_event.set()
+                time.sleep(3)
+                sh.sudo.reboot()
+            else:
+                raise UnknownCommandException(command=req_payload["command"])
+        else:
+            raise MissingArgumentException(argument="command")
+        return {}
+                     
              
     def decode_payload(self, msg):
         if msg.payload:
@@ -112,11 +148,18 @@ class Api:
         try:
             res_payload = dict()
             req_payload = dict()
-
+            res_topic = self.configuration.get("api","ResponseErrorTopic")
+            
+            logging.info("Message received on "+msg.topic)
+            
             if msg.topic == self.configuration.get("api","RequestTopicsTopic"):
                 res_topic = self.configuration.get("api","ResponseTopicsTopic")
                 req_payload = self.decode_payload(msg)
                 res_payload = self.publish_topics()
+            elif msg.topic == self.configuration.get("api","RequestSystemTopic"):
+                res_topic = self.configuration.get("api","ResponseSystemTopic")
+                req_payload = self.decode_payload(msg)
+                res_payload = self.serve_system_request(req_payload)
             else:
                 if not self.is_registered():
                     if msg.topic == self.configuration.get("api","RequestRegisterTopic"):

@@ -10,14 +10,23 @@ class Mqtt:
     
     def __init__(self):        
         self.queue = queue.Queue(1000)
+        
+        self.status_callback = None
+    
+    def set_status_callback(self, fct):
+        self.status_callback = fct
 
     def connect(self,broker,port,client_id,username=None,password=None):
         
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
                 logging.info("Connected to MQTT broker "+broker)
+                if self.status_callback:
+                    self.status_callback(True)
             else:
                 logging.error("Could not connect to MQTT broker "+broker)
+                if self.status_callback:
+                    self.status_callback(False)
                 
         def on_disconnect(client, userdata, rc):
             logging.warning("Disconnected with result "+str(rc))
@@ -28,9 +37,13 @@ class Mqtt:
                 try:
                     self.client.reconnect()
                     logging.info("Reconnected to MQTT broker")
+                    if self.status_callback:
+                        self.status_callback(True)
                     return
                 except Exception as err:
                     logging.error("Could not reconnect to MQTT broker")
+                    if self.status_callback:
+                        self.status_callback(False)
                 
             
         self.client = mqtt_client.Client(client_id)

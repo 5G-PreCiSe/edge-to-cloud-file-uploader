@@ -6,4 +6,9 @@ class Led:
         self.led = RGBLED(red=red_gpio,green=green_gpio,blue=blue_gpio)
     
     def set_color(self,red,green,blue):
-        self.led.color = (red/255,green/255,blue/255)
+        self.red = red
+        self.green = green
+        self.blue = blue
+        
+    def update(self):
+        self.led.color = (self.red/255,self.green/255,self.blue/255)
