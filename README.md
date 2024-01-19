@@ -10,9 +10,10 @@ If a command topic addresses multiple functions, the client has to specify the e
 
 During device registration, it is possible to overwrite several topics, i.e., change the default topic names and structures at runtime. Note that this feature is not supported for all topics (see details below).
 
-### State Topic
+### Querying State
 * Default topic: `stat`
 * Can be overwritten: no
+* Availability: Always
 * Description: Every two seconds, the *Edge to Cloud File Uploader* publishes its current state over this topic. Note that this is the only topic that does not have a command counterpart topic, which means that responses are automatically generated and published without any command being issued.
 * Response message payload:
 ```
@@ -21,10 +22,11 @@ During device registration, it is possible to overwrite several topics, i.e., ch
 }
 ```
 
-### Query Topics
+### Querying Topics
 * Default command topic: `cmd/topics`
 * Default response topic: `stat/topics`
 * Can be overwritten: no
+* Availability: Always
 * Description: If a command message is set to this command topic, the *Edge to Cloud File Uploader* publishes a list of all active topics over the response topic.
 * Command message payload:
 ```
@@ -66,6 +68,29 @@ During device registration, it is possible to overwrite several topics, i.e., ch
     }
   ],
   "correlationId": "query-topics-0"
+}
+```
+### Registration
+* Default command topic: `cmd/register`
+* Default response topic: `stat/register`
+* Can be overwritten: no
+* Availability: Until device is registered
+* Description: The device must be registered after startup before upload jobs can be assigned. For this, the client has to send a command message to this command topic that might contain a new configuration that replaces the default configuration. After successful registration, the *Edge to Cloud File Uploader* is ready to receive and process commands for mounting, unmounting, browsing, and handling jobs.
+* Command message payload:
+```
+{
+    "requestFileSystemTopic": "commands/filesystem",
+    "responseFileSystemTopic": "filesystem",
+    "requestJobsTopic": "commands/jobs",
+    "reponseJobsTopic": "response/jobs",
+    "correlationId":"register-req"
+}
+```
+* Response message payload:
+```
+{
+  "isRegistered": true,
+  "correlationId": "register-req"
 }
 ```
 
