@@ -47,7 +47,7 @@ def mount_observer(cancel_event, configuration):
             mounted = False
         time.sleep(1)
 
-def s3_update_callback(total,completed):
+def s3_update_callback(job_id,total,completed,path):
     global s3_state
     s3_state = str(completed)+" of "+str(total)
     
@@ -67,7 +67,7 @@ def registered_callback():
     elif not mqtt_connected:
         s3_state = "No connection"
 
-def s3_status_callback(state):
+def s3_status_callback(jobId,state):
     global s3_state
     if state == S3Uploader.JOB_SCHEDULED:
         pass
@@ -158,8 +158,8 @@ if __name__ == "__main__":
     api.set_filesystem(fs)
     
     s3 = S3Uploader(configuration)
-    s3.set_update_callback(s3_update_callback)
-    s3.set_status_callback(s3_status_callback)
+    s3.add_update_callback(s3_update_callback)
+    s3.add_status_callback(s3_status_callback)
     api.set_uploader(s3)
     
     api.start(cancel_event)

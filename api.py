@@ -21,6 +21,8 @@ class Api:
         
     def set_uploader(self, s3):
         self.uploader = s3
+        self.uploader.add_status_callback(self.s3_status_callback)
+        self.uploader.add_update_callback(self.s3_update_callback)
         
     def start(self,cancel_event):
         self.cancel_event = cancel_event
@@ -40,6 +42,14 @@ class Api:
             }
             self.mqtt.publish_async(self.configuration.get("api","ResponseStateTopic"),json.dumps(res_payload))
             time.sleep(self.STAT_INTERVALL)
+    
+    def s3_status_callback(self,job_id, state):
+        payload = self.uploader.state_response(job_id,state)
+        self.mqtt.publish_async(self.configuration.get("api","ResponseJobsTopic"),json.dumps(payload))
+        
+    def s3_update_callback(self,job_id,total,completed,path):
+        payload = self.uploader.update_response(job_id,total,completed,path)
+        self.mqtt.publish_async(self.configuration.get("api","ResponseJobsTopic"),json.dumps(payload))
             
     def set_registered_callback(self, fct):
         self.registered_callback = fct
@@ -99,7 +109,7 @@ class Api:
                 "relation": "requestFileSystemTopic"
             })
             response["topics"].append({
-                "topic": self.configuration.get("api","ReponseJobsTopic"),
+                "topic": self.configuration.get("api","ResponseJobsTopic"),
                 "relation": "reponseJobsTopic"
             })
             response["topics"].append({

@@ -36,8 +36,8 @@ class S3Uploader:
         
         self._current_job_lock = threading.Lock()
         
-        self.update_callback = None
-        self.status_callback = None
+        self.update_callback = []
+        self.status_callback = []
         
     def start(self,cancel_event):
         self.client = Minio(self.configuration.get("s3","Server"),self.configuration.get("s3","AccessKey"),self.configuration.get("s3","SecretKey"), secure=False)
@@ -98,11 +98,11 @@ class S3Uploader:
     #    with self._current_job_lock:
     #        self.current_job = None
         
-    def set_update_callback(self, fct):
-        self.update_callback = fct
+    def add_update_callback(self, fct):
+        self.update_callback.append(fct)
         
-    def set_status_callback(self, fct):
-        self.status_callback = fct
+    def add_status_callback(self, fct):
+        self.status_callback.append(fct)
         
     def upload(self,job,cancel_event):
         try:
@@ -120,33 +120,35 @@ class S3Uploader:
                     if not self.has_cancellation_flag(jobId):
                         logging.info("Upload "+os.path.join(path,file)+" to bucket "+bucket)
                         self.client.fput_object(bucket,file,os.path.join(path,file))
-                        if self.update_callback:
-                            self.update_callback(len(dir),i+1)
+                        for callback in self.update_callback:
+                            callback(jobId,len(dir),i+1,path)
+                        
                     else:
                         logging.info("Job '"+str(jobId)+"' manually canceled.")
-                        if self.status_callback: 
-                            self.status_callback(self.JOB_MANUALLY_CANCELED)
+                        for callback in self.status_callback:
+                            callback(jobId,self.JOB_MANUALLY_CANCELED)
+                        
                         #self.remove_current_job()
                         #self.output_queue.put(job)
                         return 
                 else:
                     logging.info("Job '"+str(jobId)+"' canceled due to shutdown.")
-                    if self.status_callback: 
-                        self.status_callback(self.JOB_SHUTDOWN_CANCELED)
+                    for callback in self.status_callback:
+                        callback(jobId,self.JOB_SHUTDOWN_CANCELED)
                     self.update_job_state(jobId, self.JOB_SHUTDOWN_CANCELED)
                     #self.remove_current_job()
                     #self.error_queue.put(job)
                     return 
-            if self.status_callback: 
-                self.status_callback(self.JOB_COMPLETED)
+            for callback in self.status_callback:
+                callback(jobId,self.JOB_COMPLETED)
             self.update_job_state(jobId, self.JOB_COMPLETED)
             #self.remove_current_job()
             #self.output_queue.put(job)
         except Exception as exc:
             logging.error("Job '"+str(jobId)+"' ended with exception '"+str(type(exc))+"'") 
             logging.exception(exc)
-            if self.status_callback: 
-                self.status_callback(self.JOB_EXCEPTION_CANCELED)
+            for callback in self.status_callback:
+                callback(jobId,self.JOB_ERROR)
             self.update_job_state(jobId, self.JOB_ERROR)
             #self.remove_current_job()
             #self.error_queue.put(job)
@@ -264,7 +266,37 @@ class S3Uploader:
                         response["jobs"].append(self.build_job_response(job[0],job[1]))
         
         return response
-                
+    
+    def state_response(self,job_id,state):
+        if state == self.JOB_SCHEDULED:
+            state = "scheduled"
+        elif state == self.JOB_IN_PROGRESS:
+            state = "in progress"
+        elif state == self.JOB_COMPLETED:
+            state = "completed"
+        elif state == self.JOB_MANUALLY_CANCELED:
+            state = "canceled"
+        elif state == self.JOB_SHUTDOWN_CANCELED:
+            state = "cancled (shutdown)"
+        elif state == self.JOB_ERROR:
+            state = "error"
+        else:
+            state = "unknown"
+            
+        payload = {
+            "jobId": job_id,
+            "state": state
+        }
+        return payload
+    
+    def update_response(self,job_id,total,completed,path):
+        payload = {
+            "jobId": job_id,
+            "total": total,
+            "completed": completed,
+            "lastUploadedItem": path
+        }
+        return payload
         
         '''
   
