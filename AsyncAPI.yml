@@ -38,6 +38,8 @@ channels:
         $ref: '#/components/messages/UnknownCommandException'
       MissingArgumentException:
         $ref: '#/components/messages/MissingArgumentException'
+      ApiException:
+        $ref: '#/components/messages/ApiException'
   requestRegisterTopic:
     address: cmd/register
     messages:
@@ -73,7 +75,7 @@ channels:
       MissingArgumentException:
         $ref: '#/components/messages/MissingArgumentException'
       ApiException:
-        $ref: '#/components/messages/MissingArgumentException'
+        $ref: '#/components/messages/ApiException'
       
   requestJobsTopic:
     address:  cmd/jobs
@@ -107,12 +109,14 @@ channels:
     address: errors
     messages:
       ApiException:
-        $ref: '#/components/messages/MissingArgumentException'
+        $ref: '#/components/messages/ApiException'
 
 
 operations:
 
   receiveCurrentState:
+    summary: Receive device state
+    description: The Edge to Cloud File Uploader publishes its current state periodically. The published message contains a flag indicating whether the device has been registered yet.
     action: receive
     tags:
      - name: state
@@ -123,6 +127,7 @@ operations:
 
   requestTopics:
     summary: Fetch all active topics
+    description: Send a command message to this topic to receive a list of topics over which the Edge to Cloud File Uploader is able to receive commands and sends responses in the current state.
     action: send
     channel:
       $ref: '#/channels/requestTopics'
@@ -133,6 +138,7 @@ operations:
 
   reboot:
     summary: Reboot device
+    description: Send a command message to reboot the device. All running jobs will be gracefully terminated. Note that you might not receive a response as this request might result in an immediate shutdown of the application.
     action: send
     channel:
       $ref: '#/channels/requestSystemTopic'
@@ -143,6 +149,7 @@ operations:
     
   shutdown:
     summary: Shutdown device
+    description: Send a command message to shutdown the device. All running jobs will be gracefully terminated. Note that you might not receive a response as this request might result in an immediate shutdown of the application.
     action: send
     channel:
       $ref: '#/channels/requestSystemTopic'
@@ -153,6 +160,7 @@ operations:
   
   registerRequest:
     summary: Register device
+    description: Send a command message to change the application registration state to 'registered'. Optionally, you can overwrite several topics the application will subscribe to after registration (see command message for more details). Note that this command can only be sent once, i.e., when the device has not been registered yet.
     action: send
     channel:
       $ref: '#/channels/requestRegisterTopic'
@@ -163,6 +171,7 @@ operations:
 
   mountDrive:
     summary: Mount drive
+    description: Send a command message to mount an external drive.
     action: send
     channel:
       $ref: '#/channels/requestFileSystemTopic'
@@ -173,6 +182,7 @@ operations:
 
   unmountDrive:
     summary: Unmount drive
+    description: Send a command message to unmount an external drive.
     action: send
     channel:
       $ref: '#/channels/requestFileSystemTopic'
@@ -183,6 +193,7 @@ operations:
 
   isMountedRequest:
     summary: Check if mounted
+    description: Send a command message to check whether the specified external drive is mounted.
     action: send
     channel:
       $ref: '#/channels/requestFileSystemTopic'
@@ -193,6 +204,7 @@ operations:
 
   browseFileSystem:
     summary: Browse directory
+    description: Send a command message to fetch meta information of all items in a specified directory.
     action: send
     channel:
       $ref: '#/channels/requestFileSystemTopic'
@@ -203,6 +215,7 @@ operations:
   
   addJob:
     summary: Schedule upload job
+    description: Send a command message to schedule an upload job.
     action: send
     channel:
       $ref: '#/channels/requestJobsTopic'
@@ -213,6 +226,7 @@ operations:
   
   queryJobs:
     summary: Query job(s)
+    description: Send a command message to query details of one or multiple upload jobs.
     action: send
     channel:
       $ref: '#/channels/requestJobsTopic'
@@ -223,6 +237,7 @@ operations:
 
   cancelJob:
     summary: Cancel job
+    description: Send a command message to cancel a scheduled or running upload job.
     action: send
     channel:
       $ref: '#/channels/requestJobsTopic'
@@ -233,6 +248,7 @@ operations:
 
   fileUploaded:
     summary: Receive file uploaded notification
+    description: Subscribe to this topic to receive file upload notifications. Whenever a file has been uploaded successfully, you will receive a notification over this topic.
     action: receive
     channel:
       $ref: '#/channels/responseJobsTopic'
@@ -241,15 +257,24 @@ operations:
   
   jobStateChanged:
     summary: Receive job state changed notification
+    description: Subscribe to this topic to receive job state changes. Whenever the state of a job changes, you will receive a notification over this topic.
     action: receive
     channel:
       $ref: '#/channels/responseJobsTopic'
     messages:
       - $ref: '#/channels/responseJobsTopic/messages/JobStateChanged'
   
+  error:
+    summary: Receive error messages
+    description: Subscribe to this topic to receive error messages that ocurred while processing an incoming request, but the error could not be published to the dedicated topic for several reasons.
+    action: receive
+    channel:
+      $ref: '#/channels/responseErrorTopic'
+    messages: 
+      - $ref: '#/channels/responseErrorTopic/messages/ApiException' 
+
 components:
   replies:
-
     Topics:
       channel:
         $ref: '#/channels/responseTopics'
@@ -263,6 +288,7 @@ components:
         - $ref: '#/channels/responseSystemTopic/messages/RebootResponse'
         - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
         - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+        - $ref: '#/channels/responseSystemTopic/messages/ApiException'
     
     Shutdown:
       channel:
@@ -271,6 +297,7 @@ components:
         - $ref: '#/channels/responseSystemTopic/messages/ShutdownResponse'
         - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
         - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+        - $ref: '#/channels/responseSystemTopic/messages/ApiException'
 
     Registration:
       channel:
@@ -285,6 +312,7 @@ components:
         - $ref: '#/channels/responseFileSystemTopic/messages/IsMountedResponse'
         - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
         - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+        - $ref: '#/channels/responseSystemTopic/messages/ApiException'
 
     Directory:
       channel:
@@ -293,6 +321,7 @@ components:
         - $ref: '#/channels/responseFileSystemTopic/messages/Directory'
         - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
         - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+        - $ref: '#/channels/responseSystemTopic/messages/ApiException'
 
     AddJob:
       channel:
