@@ -116,6 +116,7 @@ class S3Uploader:
             
             dir = os.listdir(job["path"]) 
             for i, file in enumerate(dir):
+                # TODO: check what happens if directory contains sub folders
                 if not cancel_event.is_set():
                     if not self.has_cancellation_flag(jobId):
                         logging.info("Upload "+os.path.join(path,file)+" to bucket "+bucket)
@@ -183,13 +184,13 @@ class S3Uploader:
         if state == self.JOB_SCHEDULED:
             state = "scheduled"
         elif state == self.JOB_IN_PROGRESS:
-            state = "in progress"
+            state = "in-progress"
         elif state == self.JOB_COMPLETED:
             state = "completed"
         elif state == self.JOB_MANUALLY_CANCELED:
             state = "canceled"
         elif state == self.JOB_SHUTDOWN_CANCELED:
-            state = "cancled (shutdown)"
+            state = "canceled-shutdown"
         elif state == self.JOB_ERROR:
             state = "error"
         else:
@@ -199,9 +200,9 @@ class S3Uploader:
             "jobId": job["jobId"],
             "bucket": job["bucket"],
             "path": job["path"],
-            "state": state,
-            "requestTopic": self.configuration.get("api","RequestJobsTopic"),
-            "requestTopic": self.configuration.get("api","ResponseJobsTopic")+"/"+job["jobId"].replace(" ","-").replace("#","-").replace("*","-")
+            "state": state
+            #"requestTopic": self.configuration.get("api","RequestJobsTopic"),
+            #"requestTopic": self.configuration.get("api","ResponseJobsTopic")+"/"+job["jobId"].replace(" ","-").replace("#","-").replace("*","-")
         }
         return response
 
@@ -246,13 +247,13 @@ class S3Uploader:
         
         if state == "scheduled":
             state = self.JOB_SCHEDULED
-        elif state == "in progress":
+        elif state == "in-progress":
             state = self.JOB_IN_PROGRESS
         elif state == "completed":
             state = self.JOB_COMPLETED
         elif state == "canceled":
             state = self.JOB_MANUALLY_CANCELED
-        elif state == "cancled (shutdown)":
+        elif state == "canceled-shutdown":
             state = self.JOB_SHUTDOWN_CANCELED
         elif state == "error":
             state = self.JOB_ERROR
@@ -271,13 +272,13 @@ class S3Uploader:
         if state == self.JOB_SCHEDULED:
             state = "scheduled"
         elif state == self.JOB_IN_PROGRESS:
-            state = "in progress"
+            state = "in-progress"
         elif state == self.JOB_COMPLETED:
             state = "completed"
         elif state == self.JOB_MANUALLY_CANCELED:
             state = "canceled"
         elif state == self.JOB_SHUTDOWN_CANCELED:
-            state = "cancled (shutdown)"
+            state = "canceled-shutdown"
         elif state == self.JOB_ERROR:
             state = "error"
         else:
@@ -297,73 +298,6 @@ class S3Uploader:
             "lastUploadedItem": path
         }
         return payload
-        
-        '''
-  
-        if not job_id:
-            response = {
-                "jobs": []
-            }
-        
-        
-        if state == "scheduled" or state == "canceled" or not state:
-            input_list = list(self.input_queue)
-            for job in input_list:
-                if job_id: 
-                    if job["jobId"] == job_id:
-                        if self.has_cancellation_flag(job_id):
-                            return self.build_job_response(job,"canceled (scheduled)")
-                        else:
-                            return self.build_job_response(job,"scheduled")
-                else:
-                    if self.has_cancellation_flag(job_id):
-                        response["jobs"].append(self.build_job_response(job,"canceled (scheduled)"))
-                    else:
-                        response["jobs"].append(self.build_job_response(job,"scheduled"))
-        
-        if state == "completed" or state == "canceled" or not state:
-            for job in list(self.output_queue):
-                if job_id: 
-                    if job["jobId"] == job_id:
-                        if self.has_cancellation_flag(job_id):
-                            return self.build_job_response(job,"canceled (completed)")
-                        else:
-                            return self.build_job_response(job,"completed")
-                else:
-                    if self.has_cancellation_flag(job_id):
-                        response["jobs"].append(self.build_job_response(job,"canceled (completed)"))
-                    else:
-                        response["jobs"].append(self.build_job_response(job,"completed"))   
-                     
-        if state == "error" or state == "canceled" or not state:
-            for job in list(self.error_queue):
-                if job_id: 
-                    if job["jobId"] == job_id:
-                        if self.has_cancellation_flag(job_id):
-                            return self.build_job_response(job,"canceled (error)")
-                        else:
-                            return self.build_job_response(job,"error")
-                else:
-                    if self.has_cancellation_flag(job_id):
-                        response["jobs"].append(self.build_job_response(job,"canceled (error)"))
-                    else:
-                        response["jobs"].append(self.build_job_response(job,"error"))
-        
-        if state == "in-progress" or state == "cancled" or not state:
-            job = self.get_current_job()
-            if job:
-                if job_id:
-                    if job["jobId"] == job_id:
-                        if self.has_cancellation_flag(job_id):
-                            return self.build_job_response(job,"canceled (in-progress)")
-                        else:
-                            return self.build_job_response(job,"in-progress")
-                else:
-                    if self.has_cancellation_flag(job_id):
-                        response["jobs"].append(self.build_job_response(job,"canceled (in-progress)"))
-                    else:
-                        response["jobs"].append(self.build_job_response(job,"in-progress"))
-        '''
             
     def cmd_cancel_job(self, req_payload):
         if "jobId" in req_payload:
@@ -377,20 +311,7 @@ class S3Uploader:
             return self.build_job_response(job[0],job[1])
         else:
            raise ApiException("The job with the ID '"+job_id+"' is unknown") 
-        
-        '''
-        job = None
-        for job in list(self.input_queue):
-            if job["jobId"] == job_id:
-                self.update_job_state(job_id,self.JOB_MANUALLY_CANCELED)
-                #self.add_cancellation_flag(job_id)
-                return self.build_job_response(job,"canceled")
-        job = self.get_current_job()
-        if job and job["jobId"] == job_id:
-            self.update_job_state(job_id,self.JOB_MANUALLY_CANCELED)
-            #self.add_cancellation_flag(job_id)
-            return self.build_job_response(job,"canceled")
-        '''
+
         
                 
     

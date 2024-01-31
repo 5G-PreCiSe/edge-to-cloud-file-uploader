@@ -1,0 +1,926 @@
+asyncapi: 3.0.0
+info:
+  title: Edge to Cloud Uploader
+  version: 1.0.0
+  description: MQTT API for uploading files from an external drive to an S3 storage
+
+channels:
+  state:
+    address: stat
+    messages:
+      State:
+        $ref: '#/components/messages/State'
+  requestTopics:
+    address: cmd/topics
+    messages:
+      RequestTopics:
+        $ref: '#/components/messages/Request'
+  responseTopics:
+    address: stat/topics
+    messages:
+      Topics:
+        $ref: '#/components/messages/Topics'
+  requestSystemTopic:
+    address: cmd/sys
+    messages:
+      Shutdown:
+        $ref: '#/components/messages/Shutdown'
+      Reboot:
+        $ref: '#/components/messages/Reboot'
+  responseSystemTopic:
+    address: stat/sys
+    messages:
+      ShutdownResponse:
+        $ref: '#/components/messages/ShutdownResponse'
+      RebootResponse:
+        $ref: '#/components/messages/RebootResponse'
+      UnknownCommandException:
+        $ref: '#/components/messages/UnknownCommandException'
+      MissingArgumentException:
+        $ref: '#/components/messages/MissingArgumentException'
+  requestRegisterTopic:
+    address: cmd/register
+    messages:
+      RegisterDevice:
+        $ref: '#/components/messages/RegisterDevice'
+  responseRegisterTopic:
+    address: stat/register
+    messages:
+      RegistrationState:
+        $ref: '#/components/messages/RegistrationState'
+
+  requestFileSystemTopic:
+    address: cmd/filesystem
+    messages:
+      MountDrive:
+        $ref: '#/components/messages/MountDrive'
+      UnmountDrive:
+        $ref: '#/components/messages/UnmountDrive'
+      IsMountedRequest:
+        $ref: '#/components/messages/IsMountedRequest'
+      BrowseFileSystem:
+        $ref: '#/components/messages/BrowseFileSystem'
+
+  responseFileSystemTopic:
+    address: stat/filesystem
+    messages:
+      IsMountedResponse:
+        $ref: '#/components/messages/IsMountedResponse'
+      Directory:
+        $ref: '#/components/messages/Directory'
+      UnknownCommandException:
+        $ref: '#/components/messages/UnknownCommandException'
+      MissingArgumentException:
+        $ref: '#/components/messages/MissingArgumentException'
+      ApiException:
+        $ref: '#/components/messages/MissingArgumentException'
+      
+  requestJobsTopic:
+    address:  cmd/jobs
+    messages:
+      QueryJobs:
+        $ref: '#/components/messages/QueryJobs'
+      AddJob:
+        $ref: '#/components/messages/AddJob'
+      CancelJob:
+        $ref: '#/components/messages/CancelJob'
+       
+  responseJobsTopic:
+    address: stat/jobs
+    messages:
+      QueryJobsResponse:
+        $ref: '#/components/messages/QueryJobsResponse'
+      AddJobResponse:
+        $ref: '#/components/messages/AddJobResponse'
+      CancelJobResponse:
+        $ref: '#/components/messages/CancelJobResponse'
+      FileUploadCompleted:
+        $ref: '#/components/messages/FileUploadCompleted'
+      JobStateChanged:
+        $ref: '#/components/messages/JobStateChanged'
+      UnknownCommandException:
+        $ref: '#/components/messages/UnknownCommandException'
+      MissingArgumentException:
+        $ref: '#/components/messages/MissingArgumentException'
+
+  responseErrorTopic:
+    address: errors
+    messages:
+      ApiException:
+        $ref: '#/components/messages/MissingArgumentException'
+
+
+operations:
+
+  receiveCurrentState:
+    action: receive
+    tags:
+     - name: state
+    channel:
+      $ref: '#/channels/state'
+    messages:
+      - $ref: '#/channels/state/messages/State'
+
+  requestTopics:
+    summary: Fetch all active topics
+    action: send
+    channel:
+      $ref: '#/channels/requestTopics'
+    messages:
+      - $ref: '#/channels/requestTopics/messages/RequestTopics'
+    reply:
+      $ref: '#/components/replies/Topics'
+
+  reboot:
+    summary: Reboot device
+    action: send
+    channel:
+      $ref: '#/channels/requestSystemTopic'
+    messages:
+      - $ref: '#/channels/requestSystemTopic/messages/Reboot'
+    reply:
+      $ref: '#/components/replies/Reboot'
+    
+  shutdown:
+    summary: Shutdown device
+    action: send
+    channel:
+      $ref: '#/channels/requestSystemTopic'
+    messages:
+      - $ref: '#/channels/requestSystemTopic/messages/Shutdown'
+    reply:
+      $ref: '#/components/replies/Shutdown'
+  
+  registerRequest:
+    summary: Register device
+    action: send
+    channel:
+      $ref: '#/channels/requestRegisterTopic'
+    messages:
+      - $ref: '#/channels/requestRegisterTopic/messages/RegisterDevice'
+    reply:
+      $ref: '#/components/replies/Registration'
+
+  mountDrive:
+    summary: Mount drive
+    action: send
+    channel:
+      $ref: '#/channels/requestFileSystemTopic'
+    messages:
+      - $ref: '#/channels/requestFileSystemTopic/messages/MountDrive'
+    reply:
+      $ref: '#/components/replies/IsMounted'
+
+  unmountDrive:
+    summary: Unmount drive
+    action: send
+    channel:
+      $ref: '#/channels/requestFileSystemTopic'
+    messages:
+      - $ref: '#/channels/requestFileSystemTopic/messages/UnmountDrive'
+    reply:
+      $ref: '#/components/replies/IsMounted'
+
+  isMountedRequest:
+    summary: Check if mounted
+    action: send
+    channel:
+      $ref: '#/channels/requestFileSystemTopic'
+    messages:
+      - $ref: '#/channels/requestFileSystemTopic/messages/IsMountedRequest'
+    reply:
+      $ref: '#/components/replies/IsMounted'
+
+  browseFileSystem:
+    summary: Browse directory
+    action: send
+    channel:
+      $ref: '#/channels/requestFileSystemTopic'
+    messages:
+      - $ref: '#/channels/requestFileSystemTopic/messages/BrowseFileSystem'
+    reply:
+      $ref: '#/components/replies/Directory'
+  
+  addJob:
+    summary: Schedule upload job
+    action: send
+    channel:
+      $ref: '#/channels/requestJobsTopic'
+    messages:
+      - $ref: '#/channels/requestJobsTopic/messages/AddJob'
+    reply:
+      $ref: '#/components/replies/AddJob'
+  
+  queryJobs:
+    summary: Query job(s)
+    action: send
+    channel:
+      $ref: '#/channels/requestJobsTopic'
+    messages:
+      - $ref: '#/channels/requestJobsTopic/messages/QueryJobs'
+    reply:
+      $ref: '#/components/replies/QueryJobs'
+
+  cancelJob:
+    summary: Cancel job
+    action: send
+    channel:
+      $ref: '#/channels/requestJobsTopic'
+    messages:
+      - $ref: '#/channels/requestJobsTopic/messages/CancelJob'
+    reply:
+      $ref: '#/components/replies/CancelJob'
+
+  fileUploaded:
+    summary: Receive file uploaded notification
+    action: receive
+    channel:
+      $ref: '#/channels/responseJobsTopic'
+    messages:
+      - $ref: '#/channels/responseJobsTopic/messages/FileUploadCompleted'
+  
+  jobStateChanged:
+    summary: Receive job state changed notification
+    action: receive
+    channel:
+      $ref: '#/channels/responseJobsTopic'
+    messages:
+      - $ref: '#/channels/responseJobsTopic/messages/JobStateChanged'
+  
+components:
+  replies:
+
+    Topics:
+      channel:
+        $ref: '#/channels/responseTopics'
+      messages:
+        - $ref: '#/channels/responseTopics/messages/Topics'
+    
+    Reboot:
+      channel:
+        $ref: '#/channels/responseSystemTopic'
+      messages:
+        - $ref: '#/channels/responseSystemTopic/messages/RebootResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+    
+    Shutdown:
+      channel:
+        $ref: '#/channels/responseSystemTopic'
+      messages:
+        - $ref: '#/channels/responseSystemTopic/messages/ShutdownResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+
+    Registration:
+      channel:
+        $ref: '#/channels/responseRegisterTopic'
+      messages:
+        - $ref: '#/channels/responseRegisterTopic/messages/RegistrationState'
+
+    IsMounted:
+      channel: 
+        $ref: '#/channels/responseFileSystemTopic'
+      messages:
+        - $ref: '#/channels/responseFileSystemTopic/messages/IsMountedResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+
+    Directory:
+      channel:
+        $ref: '#/channels/responseFileSystemTopic'
+      messages:
+        - $ref: '#/channels/responseFileSystemTopic/messages/Directory'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+
+    AddJob:
+      channel:
+        $ref: '#/channels/responseJobsTopic'
+      messages:
+        - $ref: '#/channels/responseJobsTopic/messages/AddJobResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+    
+    QueryJobs:
+      channel:
+        $ref: '#/channels/responseJobsTopic'
+      messages:
+        - $ref: '#/channels/responseJobsTopic/messages/QueryJobsResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+
+    CancelJob:
+      channel:
+        $ref: '#/channels/responseJobsTopic'
+      messages:
+        - $ref: '#/channels/responseJobsTopic/messages/CancelJobResponse'
+        - $ref: '#/channels/responseSystemTopic/messages/MissingArgumentException'
+        - $ref: '#/channels/responseSystemTopic/messages/UnknownCommandException'
+    
+  messages:
+    State:
+      payload:
+        type: object
+        properties:
+          isRegistered:
+            type: boolean
+            description: Flag indicating whether the device has been registered yet
+            example: false
+        required:
+          - isRegistered
+    Request:
+      payload:
+        $ref: '#/components/schemas/CorellationIdInRequest'
+    Topics:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInResponse'
+        - type: object
+          title: Topics
+          properties:
+            topics:
+              type: array
+              items:
+                type: object
+                properties:
+                  topic:
+                    type: string
+                    description: The topic name
+                    example: stat
+                  relation:
+                    type: string
+                    description: The topic relation
+                    example: responseTopicsTopic
+                required:
+                - topic
+                - relation
+          required:
+          - topics
+    Reboot:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInRequest'
+        - type: object
+          title: Reboot command
+          properties:
+            command:
+              type: string
+              enum:
+                - reboot
+              description: The operation that should be executed
+              example: reboot
+          required:
+          - command
+    Shutdown:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInRequest'
+        - type: object
+          title: Reboot command
+          properties:
+            command:
+              type: string
+              enum:
+                - shutdown
+              description: The operation that should be executed
+              example: shutdown
+          required:
+          - command
+          
+    RebootResponse:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: System response message
+            properties:
+              command:
+                type: string
+                enum:
+                  - reboot
+                description: The operation that has been executed
+                example: reboot
+            required:
+            - command
+                
+    ShutdownResponse:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: System response message
+            properties:
+              command:
+                type: string
+                enum:
+                  - shutdown
+                description: The operation that has been executed
+                example: shutdown
+            required:
+            - command
+
+    RegisterDevice:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Device configuration
+            properties:
+              responseFileSystemTopic:
+                type: string
+                description: If specified, the default response file system topic will be overwritten
+                example: stat/custom/filesystem
+              requestFileSystemTopic:
+                type: string
+                description: If specified, the default command file system topic will be overwritten
+                example: cmd/custom/filesystem
+              reponseJobsTopic:
+                type: string
+                description: If specified, the default response jobs topic will be overwritten
+                example: stat/custom/jobs
+              requestJobsTopic:
+                type: string
+                description: If specified, the default command jobs topic will be overwritten
+                example: cmd/custom/jobs
+
+    RegistrationState:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: Registration state
+            properties:
+              isRegistered:
+                type: boolean
+                description: Flag indicating whether the device has been registered
+            required:
+            - isRegistered
+
+    MountDrive:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Mounting parameters
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - mount
+                example: mount
+              devicePath:
+                type: string
+                description: If specified, the device behind this device path will be mounted. Otherwise, the device behind the default device path is mounted.
+                example: /dev/sdb1
+              mountPath:
+                type: string
+                description: If specified, this mounting path will be used. Otherwise, the default mounting path is used.
+                example: /media/user
+              fileSystem:
+                type: string
+                description: If specified, this file system will be used. Otherwise, the default file system is used.
+                example: exfat
+            required:
+            - command
+
+    UnmountDrive:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Mounting point
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - umount
+                example: umount
+              mountPath:
+                type: string
+                description: If specified, the device behind this mounting path will be unmounted. Otherwise, the device behing the default mounting path is unmounted.
+                example: /media/user
+            required:
+            - command
+
+    IsMountedRequest:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Device parameter
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - browse
+                example: browse
+              devicePath:
+                type: string
+                description: If specified, the mounting state of the device behind this device path will be verified. Otherwise, the mounting state of the device behind the default device path is verified.
+                example: /dev/sdb1
+            required:
+            - command
+
+    IsMountedResponse:
+      payload:
+        allOf:
+          - $ref:  '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: Is mounted flag
+            properties:
+              command:
+                type: string
+                description: The operation that has been executed
+                enum:
+                  - mount
+                  - umount
+                  - isMounted
+                example: mount
+              isMounted:
+                type: boolean
+                description: Flag indicating whether the requested device is mounted
+            required:
+            - command
+            - isMounted
+
+    BrowseFileSystem:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Path
+            properties:
+              path:
+                type: string
+                description: The directory path whose content should be returned
+                example: /media/user
+            required:
+            - path
+
+    Directory:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: Content
+            properties:
+              path:
+                type: string
+                description: The directory path whose content is contained in this response
+              content:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                      description: Path of the item
+                      example: /media/user/images
+                    name:
+                      type: string
+                      description: Name of the item
+                      example: images
+                    type:
+                      type: string
+                      description: The item type
+                      enum:
+                        - dir
+                        - file
+                        - junction
+                        - symlink
+                        - deleted
+                      example: dir
+                    size:
+                      type: integer
+                      description: The item size in bytes
+                      example: 512
+                    created:
+                      type: string
+                      format: dateTime
+                      description: The creation time of the item in ISO 8601 format
+                      example: 2023-12-06T15:57:19.970000
+                    modified:
+                      type: string
+                      format: dateTime
+                      description: The modification time of the item in ISO 8601 format
+                      example: 2023-12-06T15:57:19.970000
+                  required:
+                  - path
+                  - name
+                  - type
+                  - size
+                  - created
+                  - modified
+            required:
+            - path
+            - content
+
+    AddJob:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Job parameter
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - create
+                example: create
+              path:
+                type: string
+                description: Path to directory whose content should be uploaded
+                example: /media/user/images
+              bucket:
+                type: string
+                description: Name of the bucket the content will be uploaded to. This property is optional. If not specified, a generic bucket name consisting of the device name and the current date will be created. Moreover, the application creates a new bucket on the server if the respective bucket does not exist. Note that the bucket name must not contain any special characters.
+                example: MyBucket
+              jobId:
+                type: string
+                description: The preferred ID for this job. Note that the jobId must be unique. Uniqueness is not verified by the appliation and violations might result in malfunction. If you are incapable of specifying unique IDs, omit this property and the application will assign a random ID.
+                example: job123
+            required:
+            - command
+            - path
+
+    QueryJobs:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Job parameter
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - query
+                example: query
+              jobId:
+                type: string
+                description: If specified, only the job having this ID will be returned. The response contains an empty list if no such job exists.
+                example: job123
+              state:
+                type: string
+                description: If specified, only jobs being in the specified state will be returned. The response contains an empty list if no such job exists.   
+                enum:
+                  - scheduled
+                  - in-progress
+                  - completed
+                  - canceled
+                  - canceled-shutdown
+                  - error
+                example: scheduled
+            required:
+            - command
+
+    CancelJob:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInRequest'
+          - type: object
+            title: Job parameter
+            properties:
+              command:
+                type: string
+                description: The operation that should be executed
+                enum:
+                  - cancel
+                example: cancel 
+              jobId:
+                type: string
+                description: The ID of the job that should be canceled
+                example: job123
+            required:
+            - command
+            - jobId
+    
+    AddJobResponse:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - $ref: '#/components/schemas/Job'
+          - type: object
+            title: Command
+            properties:
+              command:
+                type: string
+                description: The operation that has been executed
+                enum:
+                  - create
+                example: create
+            required:
+            - command
+            - jobId
+            - bucket
+            - path
+            - state
+
+    
+    QueryJobsResponse:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - type: object
+            title: Jobs
+            properties:
+              jobs:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+              command:
+                type: string
+                description: The operation that has been executed
+                enum:
+                  - query
+                example: query
+            required:
+            - command
+            - jobs
+    
+    CancelJobResponse:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/CorellationIdInResponse'
+          - $ref: '#/components/schemas/Job'
+          - type: object
+            title: Command
+            properties:
+              command:
+                type: string
+                description: The operation that has been executed
+                enum:
+                  - cancel
+                example: cancel
+            required:
+            - command
+            - jobId
+            - bucket
+            - path
+            - state
+    
+    FileUploadCompleted:
+      payload:
+        title: File upload details
+        type: object
+        properties:
+          jobId:
+            type: string
+            description: The ID of the job
+            example: job123
+          total:
+            type: integer
+            description: Number of items that should be uploaded
+            example: 150
+          completed:
+            type: integer
+            description: Number of items that has been uploaded yet
+            example: 65
+          lastUploadedItem:
+            type: string
+            description: Last uploaded item (path)
+            example: /media/user/images/IMG_64.png
+        required:
+        - jobId
+        - total
+        - completed
+        - lastUploadedItem
+    
+    JobStateChanged:
+      payload:
+        title: New job state
+        type: object
+        properties:
+          jobId:
+            type: string
+            description: The ID of the job
+            example: job123
+          state:
+            type: string
+            description: New state of the job
+            enum:
+              - scheduled
+              - in-progress
+              - completed
+              - canceled
+              - canceled-shutdown
+              - error
+            example: in-progress
+        required:
+        - jobId
+        - state
+    
+    ApiException:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInResponse'
+        - title: Error details
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error description
+              example: API exception raised
+          required:
+          - error
+
+    MissingArgumentException:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInResponse'
+        - title: Error details
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error description
+              example: Missing argument
+            argument:
+              type: string
+              description: Missing arugment (property) name
+              example: command
+          required:
+          - error
+          - argument
+
+    UnknownCommandException:
+      payload:
+        allOf:
+        - $ref: '#/components/schemas/CorellationIdInResponse'
+        - title: Error details
+          type: object
+          properties:
+            error:
+              type: string
+              description: Error description
+              example: Unknown command
+            command:
+              type: string
+              description: Issued command
+              example: upload
+          required:
+          - error
+          - command
+
+  schemas:
+    CorellationIdInRequest:
+      title: Base request message
+      type: object
+      properties:
+        correlationId:
+          type: string
+          description: The caller may specify a correlationId that will be embedded into the response message so that the caller is able to correlate request and response.
+          example: request-123
+    CorellationIdInResponse:
+      title: Base response message
+      type: object
+      properties:
+        correlationId:
+          type: string
+          description: To correlate request and response messages, this response may contain a correlationId that is equals to the correlationId specified in the respective request.
+          example: request-123
+
+    Job:
+      title: Job
+      type: object
+      properties:
+        jobId:
+          type: string
+          description: The ID of the job
+          example: job123
+        bucket:
+          type: string
+          description: The bucket name
+          example: MyBucket
+        path:
+          type: string
+          description: The local directory path
+          example: /media/user/images
+        state:
+          type: string
+          description: The current job state
+          enum:
+            - scheduled
+            - in-progress
+            - completed
+            - canceled
+            - canceled-shutdown
+            - error
+            - unknown
+          example: scheduled
+      required:
+      - jobId
+      - bucket
+      - path
+      - state
+    
+    
+
+
+          
+              

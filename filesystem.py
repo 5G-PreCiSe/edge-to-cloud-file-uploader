@@ -139,6 +139,7 @@ class FileSystem:
         
         entries = self.browse_dir(path,"","dir",0,0,0,max_depth=1)["entries"]
         response = {
+            "path": path,
             "content": entries
         }
         return response

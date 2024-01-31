@@ -128,6 +128,7 @@ class Api:
         return response
     
     def serve_system_request(self, req_payload):
+        response = dict()
         if "command" in req_payload:
             if req_payload["command"] == "shutdown":
                 self.cancel_event.set()
@@ -141,7 +142,8 @@ class Api:
                 raise UnknownCommandException(command=req_payload["command"])
         else:
             raise MissingArgumentException(argument="command")
-        return {}
+        response["command"] = req_payload["command"]
+        return response
                      
              
     def decode_payload(self, msg):
