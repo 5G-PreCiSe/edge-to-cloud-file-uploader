@@ -16,6 +16,9 @@ import time
 import threading
 import logging
 
+from urllib import request
+
+
 led = Led()
 oled = OLED()
 
@@ -137,7 +140,7 @@ if __name__ == "__main__":
     led.update()
     
     configuration = ConfigurationHandler()
-    configuration.load_persistent_config("config.ini")
+    configuration.load_persistent_config("/home/user/workspace/edge-to-cloud-file-uploader/config.ini")
     
     cancel_event = threading.Event()
     
@@ -146,6 +149,15 @@ if __name__ == "__main__":
     
     hid_thread = threading.Thread(target=hid_worker, args=(cancel_event,), daemon=False)
     hid_thread.start()
+    
+    active_connection = False
+    while not active_connection:
+        try:
+            request.urlopen("http://www.google.com", timeout=1)
+            active_connection = True
+        except request.URLError as err: 
+            print("No active connection")
+            active_connection = False
     
     mqtt = Mqtt()
     mqtt.set_status_callback(mqtt_connection_callback)
