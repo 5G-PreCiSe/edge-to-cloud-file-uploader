@@ -1,6 +1,33 @@
 # Edge to Cloud File Uploader
 
+## Installation
+* Step 1: Download this repository and copy the downloaded content to ```/home/user/workspace/edge-to-cloud-file-uploader```
+* Step 2: Add a file named ```config.ini``` to ```/home/user/workspace/edge-to-cloud-file-uploader``` (TODO: explain how to modify this file)
+* Step 3: Modify ```/etc/sudoers.d``` as follows:
+  - Run ```sudo visudo```
+  - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
+  - Save file
+* Step 4: Create a service that starts this Python app after start-up:
+  - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service```
+```
+[Unit]
+Description=Edge to Cloud Uploader
+After=multi-user.target
 
+[Service]
+WorkingDirectory=/home/user/
+User=user
+ExecStart=/usr/bin/python3 /home/user/workspace/edge-to-cloud-file-uploader/app.py &
+Type=idle
+
+[Install]
+WantedBy=multi-user.target
+``` 
+  - Run ```sudo chmod 644 /lib/systemd/system/edge-to-cloud-file-uploader.service```
+  - Run ```sudo systemctl daemon-reload```
+  - Run ```sudo systemctl enable sample.service```
+  - Run ```sudo reboot```
+  
 ## MQTT API
 The *Edge to Cloud File Uploader* exposes an MQTT API that allows one to control the device remotely, in particular, to trigger essential functions like mounting a memory card, browsing the file system, and issuing an upload job.
 A client can trigger these functions by issuing command messages over dedicated command topics the *Edge to Cloud File Uploader* subscribes to. The *Edge to Cloud File Uploader* executes the respective function and publishes the result over a dedicated response topic the clients can subscribe to.
