@@ -126,7 +126,7 @@ def hid_worker(cancel_event):
         oled.update()
         led.update()
         time.sleep(0.1)
-    oled.draw("Shutting down ...", "","")
+    oled.draw("Shutting down", "","")
     oled.update()         
 
 if __name__ == "__main__":
