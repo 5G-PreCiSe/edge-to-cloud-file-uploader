@@ -18,6 +18,7 @@ class S3Uploader:
     JOB_MANUALLY_CANCELED = 3
     JOB_SHUTDOWN_CANCELED = 4
     JOB_ERROR = 5
+    JOB_LOADED = 6
     
     def __init__(self, configuration_handler):
         self.configuration = configuration_handler
@@ -48,6 +49,8 @@ class S3Uploader:
     def add_job(self, job):
         self.input_queue.put(job, block=False)
         with self._job_list_lock:
+            for callback in self.status_callback:
+                callback(job["jobId"],self.JOB_SCHEDULED)
             self.job_list.append((job,self.JOB_SCHEDULED))
     
     def update_job_state(self, job_id, state):
@@ -159,6 +162,8 @@ class S3Uploader:
             if not self.input_queue.empty():
                 job = self.input_queue.get()
                 if not self.has_cancellation_flag(job["jobId"]):
+                    for callback in self.status_callback:
+                        callback(job["jobId"],self.JOB_LOADED)
                     self.update_job_state(job["jobId"], self.JOB_IN_PROGRESS)
                     logging.info("Job '"+str(job["jobId"])+"' loaded") 
                     self.upload(job,cancel_event)
