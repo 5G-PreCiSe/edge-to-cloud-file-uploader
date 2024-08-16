@@ -11,7 +11,8 @@ As this tool is designed to run on a headless Raspberry Pi, it implements an MQT
   - Run ```sudo visudo```
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
   - Save file
-* Step 4: Create a service that starts this Python app after start-up:
+* Step 4: Use ```sudo raspi-config``` to enable the I2C interface.
+* Step 5: Create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service```
 ```
 [Unit]
