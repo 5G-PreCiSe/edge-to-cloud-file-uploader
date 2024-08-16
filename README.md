@@ -1,4 +1,8 @@
 # Edge to Cloud File Uploader
+This repository contains the sources of a Python tool for uploading files from a local directory to an S3 storage.
+This tool was originally developed to upload Drone recordings (RGB and spectral images) from a memory card to a cloud backend over a 5G wireless connection.
+The memory card is inserted into a card reader connected via USB to a headless Raspberry Pi, which serves as an edge device and executes this Python tool.
+As this tool is designed to run on a headless Raspberry Pi, it implements an MQTT API, enabling remote control over command messages.
 
 ## Installation
 * Step 1: Download this repository and copy the downloaded content to ```/home/user/workspace/edge-to-cloud-file-uploader```
@@ -7,7 +11,8 @@
   - Run ```sudo visudo```
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
   - Save file
-* Step 4: Create a service that starts this Python app after start-up:
+* Step 4: Use ```sudo raspi-config``` to enable the I2C interface.
+* Step 5: Create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service```
 ```
 [Unit]
@@ -35,95 +40,11 @@ A client can trigger these functions by issuing command messages over dedicated 
 The *Edge to Cloud File Uploader* subscribes to several command topics with the format `cmd/[NAME]`, each addressing one or multiple functions, e.g., `cmd/jobs`, being associated with jobs-related functions. For each command topic, there exists a response topic with the format `stat/[NAME]`, e.g., `stat/jobs`.
 If a command topic addresses multiple functions, the client has to specify the exact function over an additional `command` property in the message's payload (see details below). Moreover, the client may specify a `correlationId` in the payload of the command message. The *Edge to Cloud File Uploader* embeds this `correlationId` into the response message so that the client is able to correlate both messages (see details below). 
 
-During device registration, it is possible to overwrite several topics, i.e., change the default topic names and structures at runtime. Note that this feature is not supported for all topics (see details below).
+During device registration, it is possible to overwrite several topics, i.e., change the default topic names and structures at runtime. Note that this feature is not supported for all topics.
 
-### Querying State
-* Default topic: `stat`
-* Can be overwritten: no
-* Availability: Always
-* Description: Every two seconds, the *Edge to Cloud File Uploader* publishes its current state over this topic. Note that this is the only topic that does not have a command counterpart topic, which means that responses are automatically generated and published without any command being issued.
-* Response message payload:
-```
-{
-  "isRegistered": false
-}
-```
+The MQTT API is documented in [AsyncAPI.yml](https://github.com/5G-PreCiSe/edge-to-cloud-file-uploader/blob/main/AsyncAPI.yml).
 
-### Querying Topics
-* Default command topic: `cmd/topics`
-* Default response topic: `stat/topics`
-* Can be overwritten: no
-* Availability: Always
-* Description: If a command message is set to this command topic, the *Edge to Cloud File Uploader* publishes a list of all active topics over the response topic.
-* Command message payload:
-```
-{
-  "correlationId": "query-topics-0"
-}
-```
-* Response message payload:
-```
-{
-  "topics": [
-    {
-      "topic": "stat",
-      "relation": "responseStateTopic"
-    },
-    {
-      "topic": "stat/topics",
-      "relation": "responseTopicsTopic"
-    },
-    {
-      "topic": "cmd/topics",
-      "relation": "requestTopicsTopic"
-    },
-    {
-      "topic": "cmd/sys",
-      "relation": "requestSystemTopic"
-    },
-    {
-      "topic": "stat/sys",
-      "relation": "responseSystemTopic"
-    },
-    {
-      "topic": "stat/register",
-      "relation": "responseRegisterTopic"
-    },
-    {
-      "topic": "cmd/register",
-      "relation": "requestRegisterTopic"
-    }
-  ],
-  "correlationId": "query-topics-0"
-}
-```
-### Registration
-* Default command topic: `cmd/register`
-* Default response topic: `stat/register`
-* Can be overwritten: no
-* Availability: Until device is registered
-* Description: The device must be registered after startup before upload jobs can be assigned. For this, the client has to send a command message to this command topic that might contain a new configuration that replaces the default configuration. After successful registration, the *Edge to Cloud File Uploader* is ready to receive and process commands for mounting, unmounting, browsing, and handling jobs.
-* Command message payload:
-```
-{
-    "requestFileSystemTopic": "commands/filesystem",
-    "responseFileSystemTopic": "filesystem",
-    "requestJobsTopic": "commands/jobs",
-    "reponseJobsTopic": "response/jobs",
-    "correlationId":"register-req"
-}
-```
-* Response message payload:
-```
-{
-  "isRegistered": true,
-  "correlationId": "register-req"
-}
-```
 
-### Mount External Drive
-
-### Unmount External Drive
 
 
 
