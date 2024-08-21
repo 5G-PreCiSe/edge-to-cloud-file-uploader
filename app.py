@@ -1,9 +1,9 @@
 import psutil
 from uploader import S3Uploader
 from oled import OLED
+from led import Led
 from filesystem import FileSystem
 import json
-from led import Led
 
 #from services.configuration_service import ConfigurationService
 from configuration_handler import ConfigurationHandler
@@ -18,46 +18,58 @@ import logging
 
 from urllib import request
 
+from main_view import MainView
+from menu_view import MenuView
 from mqtt_view import MqttView
 from s3_view import S3View
 from fs_view import FsView
+from net_view import NetView
+from shutdown_view import ShutdownView
+from view_manager import ViewManager
 
 led = Led()
 oled = OLED()
-
 btn_e = Button(6,pull_up=False)
 btn_c = Button(5,pull_up=False)
 btn_l = Button(13,pull_up=False)
 btn_r = Button(19,pull_up=False)
 
-mqtt_connected = False
-mounted = False
+#mqtt_connected = False
+#mounted = False
 s3_state = ""
 registered = False
 led_color = ()
 
+main_view = MainView(oled,led)
+menu_view = MenuView(oled)
 mqtt_view = MqttView(oled)
 s3_view = S3View(oled)
 fs_view = FsView(oled)
+net_view = NetView(oled)
+shutdown_view = ShutdownView(oled,True)
+reboot_view = ShutdownView(oled,False)
+
+view_manager = ViewManager()
 
 def pressed_e():
     logging.info("Enter button pressed")
     oled.wake_display()
+    view_manager.btn_enter_pressed()
 def pressed_c():
     logging.info("Cancel button pressed")
     oled.wake_display()
+    view_manager.btn_cancel_pressed()
 def pressed_l():
     logging.info("Left button pressed")
     oled.wake_display()
-    fs_view.previous_view()
+    view_manager.btn_left_pressed()
 def pressed_r():
     logging.info("Right button pressed")
     oled.wake_display()
-    fs_view.next_view()
+    view_manager.btn_right_pressed()
 
 
 def mount_observer(cancel_event, configuration):
-    global mounted
     while not cancel_event.is_set():
         found = False
         device = configuration.get("fs","Device")
@@ -65,13 +77,20 @@ def mount_observer(cancel_event, configuration):
             if item.device == device:
                 found = True
         if found:
-            #print("Device ",device," is present")
             mounted = True
         else:
             mounted = False
         fs_view.set_mount_state(mounted)
+        main_view.mount_callback(mounted)
+        net_view.network_callback(psutil.net_if_addrs())
         time.sleep(1)
 
+def network_observer(cancel_event):
+    while not cancel_event.is_set():
+        net_view.network_callback(psutil.net_if_addrs())
+        time.sleep(5)
+
+'''
 def s3_update_callback(job_id,total,completed,path):
     global s3_state
 
@@ -131,9 +150,13 @@ def mqtt_connection_callback(connected):
     global mqtt_connected
     mqtt_connected = connected
 
+'''
     
 def hid_worker(cancel_event):
     while not cancel_event.is_set():    
+        view_manager.oled_update()
+        time.sleep(0.1)
+        '''
         if mounted:
             mnt_state = "Mounted"
         else:
@@ -157,8 +180,9 @@ def hid_worker(cancel_event):
         oled.update()
         led.update()
         time.sleep(0.1)
+        '''
     oled.draw_main("Shutting down", "","")
-    oled.update()         
+    oled.update()     
 
 if __name__ == "__main__":
     
@@ -167,7 +191,7 @@ if __name__ == "__main__":
 
     oled.draw_main("Initializing","","")
     oled.update()
-    led.set_color(255,192,0)
+    led.set_color(255,128,0)
     led.update()
 
     btn_e.when_pressed = pressed_e
@@ -177,44 +201,68 @@ if __name__ == "__main__":
     
     configuration = ConfigurationHandler()
     configuration.load_persistent_config("/home/user/workspace/edge-to-cloud-file-uploader/config.ini")
+    s3_view.set_configuration(configuration)
+    fs_view.set_configuration(configuration)
+    mqtt_view.set_configuration(configuration)
 
     cancel_event = threading.Event()
     
     mount_observer_thread = threading.Thread(target=mount_observer, args=(cancel_event,configuration), daemon=False)
     mount_observer_thread.start()
+
+    network_observer_thread = threading.Thread(target=network_observer, args=(cancel_event,), daemon=False)
+    network_observer_thread.start()
     
+    menu_view.add_child(MenuView.VIEW_MQTT_SETTINGS,"MQTT Settings",mqtt_view)
+    menu_view.add_child(MenuView.VIEW_S3_SETTINGS,"Upload Settings",s3_view)
+    menu_view.add_child(MenuView.VIEW_FS_SETTINGS,"Memory Card",fs_view)
+    menu_view.add_child(MenuView.VIEW_NETWORK_SETTINGS,"Network Settings",net_view)
+    menu_view.add_child(MenuView.VIEW_SHUTDOWN,"Shutdown",shutdown_view)
+    menu_view.add_child(MenuView.VIEW_REBOOT,"Reboot",reboot_view)
+    main_view.set_menu(menu_view)
+    view_manager.open_view(main_view)
+
     hid_thread = threading.Thread(target=hid_worker, args=(cancel_event,), daemon=False)
     hid_thread.start()
     
     active_connection = False
+    
+    led_off = False
     while not active_connection:
         try:
             request.urlopen("http://www.google.com", timeout=1)
             active_connection = True
+            if led_off:
+                led.set_color(0,0,0)
+            else:
+                led.set_color(255,128,0)
+            led.update()
+            led_off != led_off
         except request.URLError as err: 
             active_connection = False
     
+    led.set_color(255,128,0)
+    led.update()
+    
     mqtt = Mqtt()
-    mqtt.add_status_callback(mqtt_connection_callback)
+    mqtt.add_status_callback(mqtt_view.mqtt_connection_callback)
+    mqtt.add_status_callback(main_view.mqtt_connection_callback)
     mqtt.connect(configuration.get("broker","Address"),configuration.get("broker","Port",type="int"),configuration.get("device","DeviceId"),configuration.get("broker","Username"),configuration.get("broker","Password"))
     api = Api(configuration,mqtt)
-    api.set_registered_callback(registered_callback)
+    api.set_registered_callback(main_view.registration_callback)
     
     fs = FileSystem(configuration)
     api.set_filesystem(fs)
     
     s3 = S3Uploader(configuration)
-    s3.add_update_callback(s3_update_callback)
-    s3.add_status_callback(s3_status_callback)
-    api.set_uploader(s3)
-
-    fs_view.set_configuration(configuration)
-    s3_view.set_configuration(configuration)
+    s3.add_update_callback(main_view.s3_update_callback)
+    s3.add_status_callback(main_view.s3_status_callback)
     s3.add_status_callback(s3_view.s3_status_callback)
-    mqtt_view.set_configuration(configuration)
-    mqtt.add_status_callback(mqtt_view.mqtt_connection_callback)
+    api.set_uploader(s3)
     
     api.start(cancel_event)
+    shutdown_view.set_api(api)
+    reboot_view.set_api(api)
 
     oled.set_display_mode(display_mode=configuration, display_on_duration=configuration.get("device","DisplayOnDuration","int"),cancel_event=cancel_event)
     mqtt.start(cancel_event) # This call blocks the execution

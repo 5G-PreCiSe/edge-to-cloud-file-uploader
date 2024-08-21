@@ -21,7 +21,7 @@ class MqttView:
     def mqtt_connection_callback(self,connected):
         self.connected = connected
     
-    def draw_view(self,):
+    def update(self):
         if self.current_view == MqttView.VIEW_BROKER:
             self.oled.draw_info("MQTT Settings",["Broker: "+self.configuration.get("broker","Address"),"Port: "+str(self.configuration.get("broker","Port"))])
         elif self.current_view == MqttView.VIEW_USER:
@@ -42,4 +42,7 @@ class MqttView:
         self.current_view-=1
         if self.current_view < MqttView.FIRST_VIEW:
             self.current_view = MqttView.LAST_VIEW
+    
+    def close(self,enter):
+        return None
     

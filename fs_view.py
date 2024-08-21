@@ -21,7 +21,7 @@ class FsView:
     def set_mount_state(self, is_mounted):
         self.mounted = is_mounted
 
-    def draw_view(self,):
+    def update(self,):
         if self.current_view == FsView.VIEW_DEVICE:
             self.oled.draw_info("Memory Card",["Device: "+self.configuration.get("fs","Device")])
         elif self.current_view == FsView.VIEW_MOUNT:
@@ -42,4 +42,7 @@ class FsView:
         self.current_view-=1
         if self.current_view < FsView.FIRST_VIEW:
             self.current_view = FsView.LAST_VIEW
+
+    def close(self,enter):
+        return None
     

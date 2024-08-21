@@ -131,20 +131,25 @@ class Api:
         response = dict()
         if "command" in req_payload:
             if req_payload["command"] == "shutdown":
-                self.cancel_event.set()
-                time.sleep(3)
-                sh.sudo.shutdown()
+                self.shutdown()
             elif req_payload["command"] == "reboot":
-                self.cancel_event.set()
-                time.sleep(3)
-                sh.sudo.reboot()
+                self.reboot()
             else:
                 raise UnknownCommandException(command=req_payload["command"])
         else:
             raise MissingArgumentException(argument="command")
         response["command"] = req_payload["command"]
         return response
-                     
+
+    def shutdown(self):
+        self.cancel_event.set()
+        time.sleep(3)
+        sh.sudo.shutdown()
+    
+    def reboot(self):
+        self.cancel_event.set()
+        time.sleep(3)
+        sh.sudo.reboot()
              
     def decode_payload(self, msg):
         if msg.payload:

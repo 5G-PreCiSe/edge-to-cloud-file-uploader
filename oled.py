@@ -71,7 +71,7 @@ class OLED:
         finally:
             self.lock.release()
     
-    def draw_header(self, text_left, text_right, draw: ImageDraw):
+    def draw_header(self, text_left, text_center, text_right, draw: ImageDraw):
         font_small = ImageFont.truetype(font=self.default_font,size=9)
         width = self.display.width
         height = self.display.height
@@ -79,36 +79,49 @@ class OLED:
         if text_left:
             text_left_width, text_left_height = font_small.getsize(text_left)
             draw.text((0,0),text_left,font=font_small,fill=255)
+        if text_center:
+            text_center_width, text_center_height = font_small.getsize(text_center)
+            draw.text((width/2 - text_center_width/2,0),text_center, font=font_small, fill=255)
         if text_right:
             text_right_width, text_right_height = font_small.getsize(text_right)
             draw.text((width-1-text_right_width,0),text_right,font=font_small,fill=255)
-
-    def draw_main(self,text,text_mounted,text_network):
-
+    
+    def draw_center_text(self, text, draw: ImageDraw, offset_y = 0):
         font_large = ImageFont.truetype(font=self.default_font,size=15)
         text_width, text_height = font_large.getsize(text=text)
-        
-        #font_small = ImageFont.truetype(font=self.default_font,size=9)
-        #mounted_text_width, mounted_text_height = font_small.getsize(text_mounted)
-        #network_text_width, network_text_height = font_small.getsize(text_network)
-        
+        width = self.display.width
+        height = self.display.height
+        draw.text((width/2 - text_width/2,height/2 - text_height/2 + offset_y),text, font=font_large, fill=255)
+
+    def draw_main(self,text,text_mounted,text_network):
         width = self.display.width
         height = self.display.height
         offset_y = 5
         image = Image.new("1",(width,height))
         draw = ImageDraw.Draw(image)
+        self.draw_center_text(text,draw,offset_y)
+        self.draw_header(text_mounted, None, text_network, draw)
+        self.display.image(image)
+        #font_large = ImageFont.truetype(font=self.default_font,size=15)
+        #text_width, text_height = font_large.getsize(text=text)
+        
+        #font_small = ImageFont.truetype(font=self.default_font,size=9)
+        #mounted_text_width, mounted_text_height = font_small.getsize(text_mounted)
+        #network_text_width, network_text_height = font_small.getsize(text_network)
+        
+        
         
         #draw center text
         #draw.rectangle((0, height/2 - text_height/2 + offset_y, width-1, height/2 + text_height/2), outline=0, fill=0)
-        draw.text((width/2 - text_width/2,height/2 - text_height/2 + offset_y),text, font=font_large, fill=255)
-        self.draw_header(text_mounted, text_network, draw)
+        ##draw.text((width/2 - text_width/2,height/2 - text_height/2 + offset_y),text, font=font_large, fill=255)
+        
 
         #draw header
         #draw.rectangle((0, 0, width-1, 0+network_text_height), outline=0, fill=0)
         #draw.text((0,0),text_mounted,font=font_small,fill=255)
         #draw.text((width-1-network_text_width,0),text_network,font=font_small,fill=255)
         
-        self.display.image(image)
+       
     
     def draw_info(self, header, lines: list):
         font_small = ImageFont.truetype(font=self.default_font,size=9)
@@ -117,16 +130,27 @@ class OLED:
         
         offset_y = 0
         text_width, text_height = font_small.getsize(header)
-        text_width_btn, _ = font_small.getsize(">")
+        #text_width_btn, _ = font_small.getsize(">")
 
         image = Image.new("1",(width,height))
         draw = ImageDraw.Draw(image)
 
-        draw.text((0,-2),"<", font=font_small, fill=255)
-        draw.text((width-1-text_width_btn,-2),">", font=font_small, fill=255)
-        draw.text((width/2 - text_width/2,-1),header, font=font_small, fill=255)
+        #draw.text((0,-2),"<", font=font_small, fill=255)
+        #draw.text((width-1-text_width_btn,-2),">", font=font_small, fill=255)
+        #draw.text((width/2 - text_width/2,-1),header, font=font_small, fill=255)
+        self.draw_header("<",header,">",draw)
 
         for i, line in enumerate(lines):
             draw.text((0,(text_height*(i+1))+offset_y),line, font=font_small, fill=255)
         
+        self.display.image(image)
+    
+    def draw_menu(self, line: str):
+        width = self.display.width
+        height = self.display.height
+        offset_y = 5
+        image = Image.new("1",(width,height))
+        draw = ImageDraw.Draw(image)
+        self.draw_center_text(line,draw,offset_y)
+        self.draw_header("<", "Menu", ">", draw)
         self.display.image(image)

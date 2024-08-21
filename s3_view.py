@@ -1,5 +1,6 @@
 from oled import OLED
 from configuration_handler import ConfigurationHandler
+from uploader import S3Uploader
 
 class S3View:
 
@@ -21,11 +22,11 @@ class S3View:
         if status == S3Uploader.JOB_COMPLETED:
             self.jobs_completed+=1
 
-    def draw_view(self,):
+    def update(self):
         if self.current_view == S3View.VIEW_SERVER:
-            self.oled.draw_info("S3 Uploader",["Server: "+self.configuration.get("s3","Server")])
+            self.oled.draw_info("Upload Settings",["Server: "+self.configuration.get("s3","Server")])
         elif self.current_view == S3View.VIEW_STATS:
-            self.oled.draw_info("S3 Uploader",["Completed jobs: "+str(self.jobs_completed)])
+            self.oled.draw_info("Upload Settings",["Completed jobs: "+str(self.jobs_completed)])
         
         self.oled.update()
 
@@ -38,4 +39,8 @@ class S3View:
         self.current_view-=1
         if self.current_view < S3View.FIRST_VIEW:
             self.current_view = S3View.LAST_VIEW
+    
+    def close(self,enter):
+        return None
+
     
