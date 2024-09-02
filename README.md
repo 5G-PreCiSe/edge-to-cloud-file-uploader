@@ -17,7 +17,8 @@ As this tool is designed to run on a headless Raspberry Pi, it implements an MQT
 ```
 [Unit]
 Description=Edge to Cloud Uploader
-After=multi-user.target
+Wants=network-online.target
+After=multi-user.target network-online.target
 
 [Service]
 WorkingDirectory=/home/user/
