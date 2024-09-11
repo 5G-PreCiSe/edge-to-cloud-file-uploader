@@ -238,7 +238,7 @@ if __name__ == "__main__":
                 led.set_color(255,128,0)
             led.update()
             led_off != led_off
-        except request.URLError as err: 
+        except Exception as err:
             active_connection = False
     
     led.set_color(255,128,0)
@@ -247,7 +247,9 @@ if __name__ == "__main__":
     mqtt = Mqtt()
     mqtt.add_status_callback(mqtt_view.mqtt_connection_callback)
     mqtt.add_status_callback(main_view.mqtt_connection_callback)
-    mqtt.connect(configuration.get("broker","Address"),configuration.get("broker","Port",type="int"),configuration.get("device","DeviceId"),configuration.get("broker","Username"),configuration.get("broker","Password"))
+    mqtt_connected = False
+    while not mqtt_connected:
+        mqtt_connected = mqtt.connect(configuration.get("broker","Address"),configuration.get("broker","Port",type="int"),configuration.get("device","DeviceId"),configuration.get("broker","Username"),configuration.get("broker","Password"))
     api = Api(configuration,mqtt)
     api.set_registered_callback(main_view.registration_callback)
     

@@ -10,6 +10,7 @@ class Mqtt:
     
     def __init__(self):        
         self.queue = queue.Queue(1000)
+        self.subscribed_topics = []
         
         self.status_callback = []
     
@@ -32,11 +33,13 @@ class Mqtt:
             logging.warning("Disconnected with result "+str(rc))
             
             while True:
-                logging.info("Reconnecting to MQTT broker in "+str(AUTO_RECONNECT_DELAY)+" s")
-                time.sleep(self.AUTO_RECONNECT_DELAY)
+                logging.info("Reconnecting to MQTT broker in "+str(Mqtt.AUTO_RECONNECT_DELAY)+" s")
+                time.sleep(Mqtt.AUTO_RECONNECT_DELAY)
                 try:
                     self.client.reconnect()
                     logging.info("Reconnected to MQTT broker")
+                    for topic in self.subscribed_topics:
+                        self.client.subscribe(topic)
                     for callback in self.status_callback:
                         callback(True)
                     return
@@ -50,13 +53,19 @@ class Mqtt:
         if username and password:
             self.client.username_pw_set(username, password)
         self.client.on_connect = on_connect
-        self.client.connect(broker,port)
-        self.on_disconnect = on_disconnect
-    
+        self.client.on_disconnect = on_disconnect
+        try:
+            self.client.connect(broker,port)
+        except Exception as e:
+            return False
+        return True
+
     def subscribe(self, topic):
+        self.subscribed_topics.append(topic)
         self.client.subscribe(topic)
     
     def unsubscribe(self, topic):
+        self.subscribed_topics.remove(topic)
         self.client.unsubscribe(topic)
     
     def set_on_message(self, fct):
@@ -78,7 +87,7 @@ class Mqtt:
     def start(self,cancel_event):
         self.publisher_thread = threading.Thread(target=self.publishing_worker, args=(cancel_event,),daemon=False)
         self.publisher_thread.start()
-        self.client.loop_forever()
+        self.client.loop_start()
         
     def stop(self):
         self.client.loop_stop()
