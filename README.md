@@ -4,6 +4,8 @@ This tool was initially developed to upload Drone recordings (RGB and spectral i
 The memory card is inserted into a card reader connected via USB to a headless Raspberry Pi, which serves as an edge device and executes this Python tool.
 This tool is designed to run on a headless Raspberry Pi. It implements an MQTT API, enabling remote control over command messages.
 
+![Edge-to-Cloud File Uploader](https://github.com/5G-PreCiSe/edge-to-cloud-file-uploader/blob/main/images/Edge-to-Cloud-File-Uploader_on.JPEG)
+
 ## Hardware Requirements
 To run the Edge-to-Cloud File Uploader, the following hardware is required:
 - Raspberry Pi 4 Model B
