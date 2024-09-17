@@ -1,10 +1,17 @@
 # Edge to Cloud File Uploader
 This repository contains the sources of a Python tool for uploading files from a local directory to an S3 storage.
-This tool was originally developed to upload Drone recordings (RGB and spectral images) from a memory card to a cloud backend over a 5G wireless connection.
+This tool was initially developed to upload Drone recordings (RGB and spectral images) from a memory card to a cloud backend over a 5G wireless connection.
 The memory card is inserted into a card reader connected via USB to a headless Raspberry Pi, which serves as an edge device and executes this Python tool.
-As this tool is designed to run on a headless Raspberry Pi, it implements an MQTT API, enabling remote control over command messages.
+This tool is designed to run on a headless Raspberry Pi. It implements an MQTT API, enabling remote control over command messages.
+
+## Hardware Requirements
+To run the Edge-to-Cloud File Uploader, the following hardware is required:
+- Raspberry Pi 4 Model B
+- 5G PreCiSe Edge-to-Cloud File Uploader HAT
+- USB Card Reader
 
 ## Installation
+After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 bit), go through the following steps to the install the Edge-to-Cloud File Uploader software:
 * Step 1: Run the following commands to download this repository and copy the downloaded content to ```/home/user/workspace/edge-to-cloud-file-uploader```:
   ```
   cd ~
