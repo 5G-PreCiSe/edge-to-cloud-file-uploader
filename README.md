@@ -21,8 +21,14 @@ As this tool is designed to run on a headless Raspberry Pi, it implements an MQT
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
   - Save file
 * Step 4: Make sure that the I2C interface is enabled: Run ```sudo raspi-config``` and navigate to ```3 Interface Option```. Open ```I5 I2C``` and select ```<Yes>```.
-* Step 5: Remove the trailing ```_``` in the name of the file ```config.ini_``` in ```/home/user/workspace/edge-to-cloud-file-uploader/``` and change 
-* Step 6: Create a service that starts this Python app after start-up:
+* Step 5: When the Edge-to-Cloud File Uploader starts, it loads a file named ```config.ini```, which contains the individual runtime configuration. This file contains parameters like credentials, connection strings, and MQTT topics for communication with the backend. The downloaded repository contains a template named ```config.ini_```. Rename this file to ```config.ini``` and edit the configuration parameters. In detail, run the following commands:
+  ```
+  cd ~/workspace/edge-to-cloud-file-uploader
+  mv config.ini_ config.ini
+  nano config.ini
+  ```
+  Set the ```AccessKey```, the ```SecretKey```, and the ```Server``` address of S3 storage. Moreover, specify ```Address```, ```Port```, ```Username``` and ```Password``` or your MQTT broker.
+* Step 6: Finally, create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service```
 ```
 [Unit]
