@@ -9,8 +9,10 @@ This tool is designed to run on a headless Raspberry Pi. It implements an MQTT A
 ## Hardware Requirements
 To run the Edge-to-Cloud File Uploader, the following hardware is required:
 - Raspberry Pi 4 Model B
-- 5G PreCiSe Edge-to-Cloud File Uploader HAT
+- 5G PreCiSe Edge-to-Cloud File Uploader HAT (see [GitHub Repository](https://github.com/5G-PreCiSe/edge-to-cloud-file-uploader-hat))
+- 3D-printed Case (see [GitHub Repository](https://github.com/5G-PreCiSe/edge-to-cloud-file-uploader-hat))
 - USB Card Reader
+
 
 ## Installation
 After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 bit), go through the following steps to the install the Edge-to-Cloud File Uploader software:
