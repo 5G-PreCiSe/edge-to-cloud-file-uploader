@@ -43,21 +43,21 @@ After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 b
   Set the ```AccessKey```, the ```SecretKey```, and the ```Server``` address of S3 storage. Moreover, specify ```Address```, ```Port```, ```Username``` and ```Password``` or your MQTT broker.
 * Step 6: Finally, create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-file-uploader.service``` and paste the following lines into the service definition file:
-```
-[Unit]
-Description=Edge to Cloud Uploader
-Wants=network-online.target
-After=multi-user.target network-online.target
-
-[Service]
-WorkingDirectory=/home/user/
-User=user
-ExecStart=/usr/bin/python3 /home/user/workspace/edge-to-cloud-file-uploader/app.py &
-Type=idle
-
-[Install]
-WantedBy=multi-user.target
-``` 
+  ```
+  [Unit]
+  Description=Edge to Cloud Uploader
+  Wants=network-online.target
+  After=multi-user.target network-online.target
+  
+  [Service]
+  WorkingDirectory=/home/user/
+  User=user
+  ExecStart=/usr/bin/python3 /home/user/workspace/edge-to-cloud-file-uploader/app.py &
+  Type=idle
+  
+  [Install]
+  WantedBy=multi-user.target
+  ``` 
   - Run ```sudo chmod 644 /lib/systemd/system/edge-to-cloud-file-uploader.service```
   - Run ```sudo systemctl daemon-reload```
   - Run ```sudo systemctl enable edge-to-cloud-file-uploader.service```
