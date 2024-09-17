@@ -53,7 +53,7 @@ WantedBy=multi-user.target
 ``` 
   - Run ```sudo chmod 644 /lib/systemd/system/edge-to-cloud-file-uploader.service```
   - Run ```sudo systemctl daemon-reload```
-  - Run ```sudo systemctl enable sample.service```
+  - Run ```sudo systemctl enable edge-to-cloud-file-uploader.service```
   - Run ```sudo reboot```
   
 ## MQTT API
