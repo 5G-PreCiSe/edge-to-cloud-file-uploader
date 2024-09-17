@@ -35,7 +35,7 @@ As this tool is designed to run on a headless Raspberry Pi, it implements an MQT
   ```
   Set the ```AccessKey```, the ```SecretKey```, and the ```Server``` address of S3 storage. Moreover, specify ```Address```, ```Port```, ```Username``` and ```Password``` or your MQTT broker.
 * Step 6: Finally, create a service that starts this Python app after start-up:
-  - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service``` and paste the following lines into the service definition file:
+  - Run ```sudo nano /lib/systemd/system/edge-to-cloud-file-uploader.service``` and paste the following lines into the service definition file:
 ```
 [Unit]
 Description=Edge to Cloud Uploader
