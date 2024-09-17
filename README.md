@@ -16,6 +16,12 @@ As this tool is designed to run on a headless Raspberry Pi, it implements an MQT
   ```
   pip install -r ./edge-to-cloud-file-uploader/requirements.txt --break-system-packages
   ```
+  We must also replace ```RPi.GPIO``` by ```lgpio```. Run the following commands:
+  ```
+  sudo apt remove python3-rpi.gpio
+  sudo apt update
+  sudo apt install python3-rpi-lgpio
+  ```
 * Step 3: Modify ```/etc/sudoers.d``` as follows:
   - Run ```sudo visudo```
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
