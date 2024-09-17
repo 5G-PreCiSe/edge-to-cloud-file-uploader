@@ -1,0 +1,34 @@
+[s3]
+AccessKey = s3_access_key
+SecretKey = s3_secret_key
+Server = minio.mydomain.com
+
+[fs]
+Device = /dev/sdb1
+Mount = /media/user
+FileSystem = exfat
+
+[broker]
+Address = mqtt.mydomain.com
+Port = 1883
+Username = mqtt_user
+Password = mqtt_password
+
+[device]
+DeviceId = myDeviceId
+DisplayMode = 1
+DisplayOnDuration = 15
+
+[api]
+ResponseStateTopic = stat
+RequestTopicsTopic = cmd/topics
+ResponseTopicsTopic = stat/topics
+RequestSystemTopic = cmd/sys
+ResponseSystemTopic = stat/sys
+ResponseRegisterTopic = stat/register
+RequestRegisterTopic = cmd/register
+ResponseFileSystemTopic = stat/filesystem
+RequestFileSystemTopic = cmd/filesystem
+ResponseJobsTopic = stat/jobs
+RequestJobsTopic = cmd/jobs
+ResponseErrorTopic = errors
