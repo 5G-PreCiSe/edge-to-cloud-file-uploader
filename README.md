@@ -5,14 +5,24 @@ The memory card is inserted into a card reader connected via USB to a headless R
 As this tool is designed to run on a headless Raspberry Pi, it implements an MQTT API, enabling remote control over command messages.
 
 ## Installation
-* Step 1: Download this repository and copy the downloaded content to ```/home/user/workspace/edge-to-cloud-file-uploader```
-* Step 2: Add a file named ```config.ini``` to ```/home/user/workspace/edge-to-cloud-file-uploader``` (TODO: explain how to modify this file)
+* Step 1: Run the following commands to download this repository and copy the downloaded content to ```/home/user/workspace/edge-to-cloud-file-uploader```:
+  ```
+  cd ~
+  mkdir workspace
+  git clone
+  https://github.com/5G-PreCiSe/edge-to-cloud-file-uploader
+  ```
+* Step 2: Install required Python libraries listed in ```requirements.txt```:
+  ```
+  pip install -r ./edge-to-cloud-file-uploader/requirements.txt --break-system-packages
+  ```
 * Step 3: Modify ```/etc/sudoers.d``` as follows:
   - Run ```sudo visudo```
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
   - Save file
-* Step 4: Use ```sudo raspi-config``` to enable the I2C interface.
-* Step 5: Create a service that starts this Python app after start-up:
+* Step 4: Make sure that the I2C interface is enabled: Run ```sudo raspi-config``` and navigate to ```3 Interface Option```. Open ```I5 I2C``` and select ```<Yes>```.
+* Step 5: Remove the trailing ```_``` in the name of the file ```config.ini_``` in ```/home/user/workspace/edge-to-cloud-file-uploader/``` and change 
+* Step 6: Create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-uploader.service```
 ```
 [Unit]
