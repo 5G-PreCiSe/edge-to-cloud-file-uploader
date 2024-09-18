@@ -46,7 +46,7 @@ After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 b
   mv config.ini_ config.ini
   nano config.ini
   ```
-  Set the ```AccessKey```, the ```SecretKey```, and the ```Server``` address of S3 storage. Moreover, specify ```Address```, ```Port```, ```Username``` and ```Password``` or your MQTT broker.
+  Set the ```AccessKey```, the ```SecretKey```, and the ```Server``` address of S3 storage. Moreover, specify ```Address```, ```Port```, ```Username``` and ```Password``` of your MQTT broker.
 * Step 6: Finally, create a service that starts this Python app after start-up:
   - Run ```sudo nano /lib/systemd/system/edge-to-cloud-file-uploader.service``` and paste the following lines into the service definition file:
   ```
