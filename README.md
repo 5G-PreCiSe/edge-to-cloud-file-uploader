@@ -36,7 +36,10 @@ After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 b
   - Run ```sudo visudo```
   - Add ```user    ALL=NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/bin/shutdown, /usr/bin/reboot``` after ```%sudo   ALL=(ALL:ALL) ALL```
   - Save file
-* Step 4: Make sure that the I2C interface is enabled: Run ```sudo raspi-config``` and navigate to ```3 Interface Option```. Open ```I5 I2C``` and select ```<Yes>```.
+* Step 4: Make sure that the I2C interface is enabled:
+  - Run ```sudo raspi-config```
+  - Navigate to ```3 Interface Option```
+  - Open ```I5 I2C``` and select ```<Yes>```
 * Step 5: When the Edge-to-Cloud File Uploader starts, it loads a file named ```config.ini```, which contains the individual runtime configuration. This file contains parameters like credentials, connection strings, and MQTT topics for communication with the backend. The downloaded repository contains a template named ```config.ini_```. Rename this file to ```config.ini``` and edit the configuration parameters. In detail, run the following commands:
   ```
   cd ~/workspace/edge-to-cloud-file-uploader
