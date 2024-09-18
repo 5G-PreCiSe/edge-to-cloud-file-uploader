@@ -26,7 +26,7 @@ After the installation of Raspberry Pi OS (we recommend to install Bookworm 64 b
   ```
   pip install -r ./edge-to-cloud-file-uploader/requirements.txt --break-system-packages
   ```
-  Additionally, ```RPi.GPIO``` must be replaced by ```lgpio```. Run the following commands:
+  Additionally, ```RPi.GPIO``` must be replaced by ```lgpio```:
   ```
   sudo apt remove python3-rpi.gpio
   sudo apt update
